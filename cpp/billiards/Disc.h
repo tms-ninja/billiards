@@ -10,5 +10,8 @@ public:
 	double R;
 
 	Disc(Vec2D &pos, Vec2D &v, double m, double R);
+
+	// computes the position of the disc at time t
+	Vec2D r(double t) const;
 };
 
