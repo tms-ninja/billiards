@@ -11,8 +11,18 @@ public:
 	Vec2D(double x, double y);
 
 	double& operator[](int ind);
-
 	const double& operator[](int ind) const;
+
+	// Elementwise arithmetic operators
+	Vec2D& operator+=(const Vec2D &v);
+	Vec2D& operator-=(const Vec2D &v);
+	Vec2D& operator*=(const Vec2D &v);
+	Vec2D& operator/=(const Vec2D &v);
+
+	Vec2D& operator+=(const double v);
+	Vec2D& operator-=(const double v);
+	Vec2D& operator*=(const double v);
+	Vec2D& operator/=(const double v);
 
 	inline double mag() const
 	{
@@ -31,3 +41,18 @@ public:
 
 };
 
+// Elementwise binary artihmetic operators
+Vec2D operator+(Vec2D v1, const Vec2D &v2);
+Vec2D operator-(Vec2D v1, const Vec2D &v2);
+Vec2D operator*(Vec2D v1, const Vec2D &v2);
+Vec2D operator/(Vec2D v1, const Vec2D &v2);
+
+Vec2D operator+(Vec2D v1, const double n);
+Vec2D operator-(Vec2D v1, const double n);
+Vec2D operator*(Vec2D v1, const double n);
+Vec2D operator/(Vec2D v1, const double n);
+
+Vec2D operator+(const double n, Vec2D v1);
+Vec2D operator-(const double n, Vec2D v1);
+Vec2D operator*(const double n, Vec2D v1);
+Vec2D operator/(const double n, Vec2D v1);
