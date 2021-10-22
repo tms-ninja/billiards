@@ -24,12 +24,18 @@
     <ClCompile Include="billiards\Disc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="billiards\Wall.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="billiards\Vec2D.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="billiards\Disc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="billiards\Wall.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
