@@ -168,3 +168,10 @@ Vec2D operator/(const double n, Vec2D v1)
 
 	return v1;
 }
+
+std::ostream & operator<<(std::ostream & os, const Vec2D & v)
+{
+	os << v[0] << '\t' << v[1];
+
+	return os;
+}

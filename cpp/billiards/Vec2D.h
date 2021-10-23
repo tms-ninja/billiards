@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include <iostream>
 
 class Vec2D
 {
@@ -56,3 +57,5 @@ Vec2D operator+(const double n, Vec2D v1);
 Vec2D operator-(const double n, Vec2D v1);
 Vec2D operator*(const double n, Vec2D v1);
 Vec2D operator/(const double n, Vec2D v1);
+
+std::ostream& operator<<(std::ostream& os, const Vec2D& v);
