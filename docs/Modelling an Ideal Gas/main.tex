@@ -70,7 +70,7 @@ and occurs at,
 \end{equation}
 Substituting in for $s$, we can rewrite Eq.~\ref{eq:wall_collision} as,
 \begin{equation}
-    (t\vec{\alpha} - \vec{\beta})^2 = R^2,
+    (t\vec{\alpha} + \vec{\beta})^2 = R^2,
 \end{equation}
 with,
 \begin{align}
@@ -93,7 +93,7 @@ This has solutions,
     =
     \frac{1}{\alpha^2}
     \left(
-        \vec{\alpha} \cdot \vec{\beta}
+        -\vec{\alpha} \cdot \vec{\beta}
         \pm
         \sqrt{(\vec{\alpha} \cdot \vec{\beta})^2 + \alpha^2(R^2 - \beta^2)}
     \right).
@@ -205,6 +205,7 @@ Function for solving collision detection i.e. Eq.~\ref{eq:wall_collision_sol}.
         \item Vector to store the discs that are in the simulation, both in their current state and their initial state
         \item Vector to store the walls in the simulation
         \item Vector to store the events that occur during the simulation 
+        \item Current time of the simulation
         \item A method to advance the simulation by either a given number of events or duration, whichever is reached sooner, should have a member variable to set whether the events should be stored or only the current state should be stored
     \end{itemize}
 \end{itemize}
