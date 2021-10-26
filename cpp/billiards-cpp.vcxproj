@@ -154,12 +154,14 @@
     <ClCompile Include="billiards-cpp.cpp" />
     <ClCompile Include="billiards\Disc.cpp" />
     <ClCompile Include="billiards\Event.cpp" />
+    <ClCompile Include="billiards\Sim.cpp" />
     <ClCompile Include="billiards\Vec2D.cpp" />
     <ClCompile Include="billiards\Wall.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="billiards\Disc.h" />
     <ClInclude Include="billiards\Event.h" />
+    <ClInclude Include="billiards\Sim.h" />
     <ClInclude Include="billiards\Vec2D.h" />
     <ClInclude Include="billiards\Wall.h" />
   </ItemGroup>

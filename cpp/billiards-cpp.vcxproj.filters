@@ -30,6 +30,9 @@
     <ClCompile Include="billiards\Event.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="billiards\Sim.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="billiards\Vec2D.h">
@@ -42,6 +45,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="billiards\Event.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="billiards\Sim.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
