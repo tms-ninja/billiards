@@ -204,13 +204,24 @@ Function for solving collision detection i.e. Eq.~\ref{eq:wall_collision_sol}.
     \begin{itemize}
         \item Vector to store the discs that are in the simulation, both in their current state and their initial state
         \item Vector to store the walls in the simulation
-        \item Vector to store the events that occur during the simulation 
+        \item Vector to store the events that occur during the simulation, if desired
         \item Current time of the simulation
         \item A method to advance the simulation by either a given number of events or duration, whichever is reached sooner, should have a member variable to set whether the events should be stored or only the current state should be stored
     \end{itemize}
 \end{itemize}
 
 We also intend to produce a Cython wrapper to run and analyse the results from a simulation in Python. Initially, we'll implement a simple but inefficient algorithm for checking collisions but later we'll do something more advanced.
+
+\subsection{Initial algorithm}
+Initially we'll implement an inefficient $\mathcal{O}(N^2)$ algorithm as follows:
+\begin{enumerate}
+    \item Store a list of the last event that occurred and any others that occurred at the same time. This could be due to a particle colliding with the corner of a box and colliding with two walls at the same time
+    \item Iterate over all possible disc-wall and disc-disc collisions. Find the one with the smallest positive time till collision.
+    \item Now we know the next collision, advance all particles (if necessary) to the time of collision
+    \item Perform the appropriate type of collision on the disc or discs
+    \item Repeat until the maximum number of collisions is reached or maximum duration is reached.
+\end{enumerate}
+The above doesn't account for what to do if a disc undergoes two collisions at the same time, but it'll be enough to check the basic physics of checking for collisions and performing collisions are done correctly.
 
 \end{document}
 
