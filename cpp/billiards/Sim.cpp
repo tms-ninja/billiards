@@ -127,7 +127,7 @@ double Sim::test_disc_wall_col(const Disc & d, const Wall & w)
 	double s, t;
 
 	t = Sim::solve_quadratic(alpha, beta, d.R);
-	s = (d.r(t) - w.start).dot(diff) / diff.mag2();
+	s = (Sim::disc_pos(d, t) - w.start).dot(diff) / diff.mag2();
 
 	if (t < 0.0 || s < 0.0 || s > 1.0)
 		return std::numeric_limits<double>::infinity();
@@ -154,5 +154,10 @@ void Sim::disc_disc_col(Disc & d1, Disc & d2)
 
 	d1.v += d2.m*dv;
 	d2.v -= d1.m*dv;
+}
+
+Vec2D Sim::disc_pos(const Disc & d, const double t)
+{
+	return d.pos + t*d.v;
 }
 

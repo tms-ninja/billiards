@@ -37,5 +37,8 @@ private:
 
 	// performs a disc-wall collsi==ision
 	static void disc_disc_col(Disc &d1, Disc &d2);
+
+	// Computes position of disc d at time t
+	static Vec2D disc_pos(const Disc& d, const double t);
 };
 
