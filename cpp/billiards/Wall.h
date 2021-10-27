@@ -8,6 +8,8 @@ public:
 	Vec2D end;
 	Vec2D tangent;  // tangent unit vector in diection start -> end
 
+	Wall();
+
 	Wall(const Vec2D &start, const Vec2D &end);
 };
 

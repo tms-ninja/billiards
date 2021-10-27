@@ -9,6 +9,8 @@ public:
 	double m;
 	double R;
 
+	Disc();
+
 	Disc(const Vec2D &pos, const Vec2D &v, double m, double R);
 };
 
