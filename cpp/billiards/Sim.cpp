@@ -84,6 +84,11 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 	}
 }
 
+void Sim::setup()
+{
+	initial_state = current_state;
+}
+
 double Sim::solve_quadratic(const Vec2D & alpha, const Vec2D & beta, const double R)
 {
 	double a2{ alpha.mag2() };
