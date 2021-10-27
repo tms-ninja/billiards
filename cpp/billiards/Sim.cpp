@@ -45,7 +45,7 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 
 		// Advance all the discs to the moment of collision
 		for (Disc& d : current_state)
-			d.pos += current_best.t * d.v;
+			d.r += current_best.t * d.v;
 
 		// Now we know which disc and disc/wall are next to be hit, perform the collision
 		if (current_best.disc_wall_col)
@@ -59,7 +59,7 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 			const Disc& d{ current_state[current_best.ind] };
 
 			current_best.t += current_t;
-			current_best.pos = d.pos;
+			current_best.pos = d.r;
 			current_best.new_v = d.v;
 
 			events.push_back(current_best);	
@@ -70,7 +70,7 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 
 				std::swap(current_best.ind, current_best.second_ind);
 
-				current_best.pos = second_disc.pos;
+				current_best.pos = second_disc.r;
 				current_best.new_v = second_disc.v;
 
 				events.push_back(current_best);
@@ -108,7 +108,7 @@ double Sim::solve_quadratic(const Vec2D & alpha, const Vec2D & beta, const doubl
 double Sim::test_disc_disc_col(const Disc & d1, const Disc & d2)
 {
 	Vec2D alpha{ d1.v - d2.v };
-	Vec2D beta{ d1.pos - d2.pos };
+	Vec2D beta{ d1.r - d2.r };
 	double R{ d1.R + d2.R };
 	double t;
 
@@ -119,7 +119,7 @@ double Sim::test_disc_disc_col(const Disc & d1, const Disc & d2)
 
 double Sim::test_disc_wall_col(const Disc & d, const Wall & w)
 {	
-	Vec2D delta{ d.pos - w.start };
+	Vec2D delta{ d.r - w.start };
 	Vec2D alpha{ d.v - (d.v.dot(w.tangent)) * w.tangent };
 	Vec2D beta{ delta - (delta.dot(w.tangent)) * w.tangent };
 	
@@ -145,7 +145,7 @@ void Sim::disc_wall_col(Disc & d, const Wall & w)
 void Sim::disc_disc_col(Disc & d1, Disc & d2)
 {
 	Vec2D du{ d2.v - d1.v };
-	Vec2D dr{ d2.pos - d1.pos };
+	Vec2D dr{ d2.r - d1.r };
 	double dr_mag{ d1.R + d2.R };
 
 	double coeff{ 2 * du.dot(dr) / ((d1.m + d2.m)*dr_mag * dr_mag) };
@@ -158,6 +158,6 @@ void Sim::disc_disc_col(Disc & d1, Disc & d2)
 
 Vec2D Sim::disc_pos(const Disc & d, const double t)
 {
-	return d.pos + t*d.v;
+	return d.r + t*d.v;
 }
 

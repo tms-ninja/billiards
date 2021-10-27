@@ -4,7 +4,7 @@
 class Disc
 {
 public:
-	Vec2D pos;
+	Vec2D r;
 	Vec2D v;
 	double m;
 	double R;
