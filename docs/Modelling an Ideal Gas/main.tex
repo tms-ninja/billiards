@@ -207,10 +207,43 @@ Function for solving collision detection i.e. Eq.~\ref{eq:wall_collision_sol}.
         \item Vector to store the events that occur during the simulation, if desired
         \item Current time of the simulation
         \item A method to advance the simulation by either a given number of events or duration, whichever is reached sooner, should have a member variable to set whether the events should be stored or only the current state should be stored
+        \item A setup method to set the simulation as ready to start. In effect, copies the current state to the initial state variable.
     \end{itemize}
 \end{itemize}
 
 We also intend to produce a Cython wrapper to run and analyse the results from a simulation in Python. Initially, we'll implement a simple but inefficient algorithm for checking collisions but later we'll do something more advanced.
+
+\subsection{Cython wrapper}
+Here we detail the structure of the Cython wrapper and interface to Python.
+\begin{itemize}
+    \item Cython needs to be told about \texttt{Vec2D}, but it doesn't need a wrapper provided to Python
+    \item \texttt{PyDisc} wrapper for \texttt{Disc}. It does not own the memory, that is owned by the C++ \texttt{Sim}.
+    \begin{itemize}
+        \item Exposes the member variables of a \texttt{Disc} such as mass, radius etc. as properties
+        \item Position and velocity should be exposed as \texttt{numpy} arrays wit shape \texttt{(2,)}
+        \item Wraps the position method to compute position at time $t$
+    \end{itemize}
+    \item \texttt{PyWall} wrapper for \texttt{Wall}. It does not own the memory, that is owned by the C++ \texttt{Sim}.
+    \begin{itemize}
+        \item Exposes the start and end member variables of a \texttt{Wall} as properties, specifically as \texttt{numpy} arrays with shape \texttt{(2,)}
+    \end{itemize}
+    \item \texttt{PyEvent} wraps \texttt{Event}. It does not own the memory, that is owned by the C++ \texttt{Sim}.
+    \begin{itemize}
+        \item Exposes the member variables of an \texttt{Event} such as mass, radius etc. as properties
+        \item New position and velocity should be exposed as \texttt{numpy} arrays with shape \texttt{(2,)}
+        \item Factory static method for creation from a \texttt{PySim} instance and index of event
+    \end{itemize}
+    \item \texttt{PySim} wrapper for \texttt{Sim}.
+    \begin{itemize}
+        \item Should expose member variables as properties using python lists
+        \item Methods for adding discs/walls to the simulation individually
+        \item Method for adding discs in bulk randomly in a box, all with the same given parameters e.g. mass, radius etc. 
+        \item Although we expose discs as a python list, for analysis it may be more useful to access properties as \texttt{numpy} arrays. So we'll have a method that accepts certain parameters and returns a dictionary of \texttt{numpy} arrays corresponding to those parameters.
+        \item A setup method to be called before running the simulation. Ensures the \texttt{Sim} object is internally set up appropriately.
+        \item Method to get the initial state of the system
+    \end{itemize}
+    \item A generator for replaying the simulation
+\end{itemize}
 
 \subsection{Initial algorithm}
 Initially we'll implement an inefficient $\mathcal{O}(N^2)$ algorithm as follows:
