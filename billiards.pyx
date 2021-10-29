@@ -471,5 +471,58 @@ cdef class PySim():
         state_dict['R'] = _get_state_R(self.s.current_state)
 
         return state_dict
+
+    # Generators for replaying the simulation
+    def replay_by_event(self):
+        """
+        Generator that yields a state dict updated event by event, starting 
+        with the initial state. Each yield corresponds to advancing the 
+        simulation by a single event. The two events associated with disc-disc
+        collisions are yielded seperately, meaning two yields are needed to
+        process a disc-disc collision.
+
+        Parameters
+        ----------
+        None.
+
+        Yields
+        ------
+        dict
+            A dict containing the position, velocity, masses and radii of the 
+            discs as numpy arrays. Keys
+            correspond to:
+            - 'r' - position
+            - 'v' - velocity
+            - 'm' - mass
+            - 'R' - radius
+        
+        """
+
+        cdef size_t N_events = self.s.events.size()
+        cdef size_t cur_disc
+        cdef double current_t = 0.0
+        cdef double dt
+
+        current_state = self.initial_state
+
+        yield current_state
+
+        for current_state_ind in range(N_events):
+            dt = self.s.events[current_state_ind].t - current_t
+            cur_disc = self.s.events[current_state_ind].ind
+
+            # Advance all discs to time of collision
+            current_state['r'] += dt*current_state['v']
+
+            # Update the colliding particle accordingly
+            for ind in range(2):
+                current_state['v'][cur_disc][ind] = self.s.events[current_state_ind].new_v[ind]
+
+            current_t = self.s.events[current_state_ind].t
+
+            yield current_state
+
+
+
         
 
