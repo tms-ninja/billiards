@@ -4,6 +4,105 @@ from cython_header cimport *
 import numpy as np
 cimport numpy as np
 
+cdef _get_state_pos(vector[Disc]& state):
+    """
+    Returns numpy array containing the position of every disc in state.
+    
+    Parameters
+    ----------
+    state : vector[Disc]&
+        The state vector containing N discs.
+
+    Returns
+    -------
+    numpy.ndarray
+        A numpy array of shape (N,2)
+    """
+    
+    cdef size_t n_discs = state.size()
+
+    arr = np.empty((n_discs, 2), dtype=np.float64)
+
+    for d_ind in range(0, n_discs):
+        for p_ind in range(0, 2):
+            arr[d_ind, p_ind] = state[d_ind].r[p_ind]
+
+    return arr
+
+cdef _get_state_v(vector[Disc]& state):
+    """
+    Returns numpy array containing the velocity of every disc in state.
+    
+    Parameters
+    ----------
+    state : vector[Disc]&
+        The state vector containing N discs.
+
+    Returns
+    -------
+    numpy.ndarray
+        A numpy array of shape (N,2)
+    """
+    
+    cdef size_t n_discs = state.size()
+
+    arr = np.empty((n_discs, 2), dtype=np.float64)
+
+    for d_ind in range(0, n_discs):
+        for p_ind in range(0, 2):
+            arr[d_ind, p_ind] = state[d_ind].v[p_ind]
+
+    return arr
+
+cdef _get_state_m(vector[Disc]& state):
+    """
+    Returns numpy array containing the mass of every disc in state.
+    
+    Parameters
+    ----------
+    state : vector[Disc]&
+        The state vector containing N discs.
+
+    Returns
+    -------
+    numpy.ndarray
+        A numpy array of shape (N)
+    """
+    
+    cdef size_t n_discs = state.size()
+
+    arr = np.empty((n_discs, ), dtype=np.float64)
+
+    for d_ind in range(0, n_discs):
+        arr[d_ind] = state[d_ind].m
+
+    return arr
+
+cdef _get_state_R(vector[Disc]& state):
+    """
+    Returns numpy array containing the radius of every disc in state.
+    
+    Parameters
+    ----------
+    state : vector[Disc]&
+        The state vector containing N discs.
+
+    Returns
+    -------
+    numpy.ndarray
+        A numpy array of shape (N)
+    """
+    
+    cdef size_t n_discs = state.size()
+
+    arr = np.empty((n_discs, ), dtype=np.float64)
+
+    for d_ind in range(0, n_discs):
+        arr[d_ind] = state[d_ind].R
+
+    return arr
+
+
 # class PyEvent
 
 cdef class PyEvent():
@@ -293,6 +392,8 @@ cdef class PySim():
         self.s.current_state.push_back(d)
 
 
+    
+
     # Properties
     @property
     def events(self):
@@ -310,4 +411,65 @@ cdef class PySim():
         """
 
         return self._events
+
+    @property
+    def initial_state(self):
+        """
+        Gets desired inital properties of each disc in the initial state and 
+        returns them as a dictionary of numpy arrays.
+        
+        Parameters
+        ----------
+        None.
+
+        Returns
+        -------
+        dict
+            A dictionary with character keys and values of numpy arrays. Keys
+            correspond to:
+            - 'r' - position
+            - 'v' - velocity
+            - 'm' - mass
+            - 'R' - radius
+        """
+
+        state_dict = {}
+
+        state_dict['r'] = _get_state_pos(self.s.initial_state)
+        state_dict['v'] = _get_state_v(self.s.initial_state)
+        state_dict['m'] = _get_state_m(self.s.initial_state)
+        state_dict['R'] = _get_state_R(self.s.initial_state)
+
+        return state_dict
+    
+    @property
+    def current_state(self):
+        """
+        Gets desired current properties of each disc in the current state and 
+        returns them as a dictionary of numpy arrays.
+        
+        Parameters
+        ----------
+        None.
+
+        Returns
+        -------
+        dict
+            A dictionary with character keys and values of numpy arrays. Keys
+            correspond to:
+            - 'r' - position
+            - 'v' - velocity
+            - 'm' - mass
+            - 'R' - radius
+        """
+
+        state_dict = {}
+
+        state_dict['r'] = _get_state_pos(self.s.current_state)
+        state_dict['v'] = _get_state_v(self.s.current_state)
+        state_dict['m'] = _get_state_m(self.s.current_state)
+        state_dict['R'] = _get_state_R(self.s.current_state)
+
+        return state_dict
+        
 
