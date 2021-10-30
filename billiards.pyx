@@ -522,7 +522,79 @@ cdef class PySim():
 
             yield current_state
 
+    def replay_by_time(self, double dt):
+        """
+        Replays the simulation advancing by timesteps dt. If the final event 
+        is not an integer multiple of dt, the events after the previous integer
+        multiple of dt are not returned. I.e. If the last event in the 
+        simulation occurs at time T, replay_by_time() does not consider events
+        after int(T/dt).
 
+        Parameters
+        dt : float
+            The timestep the replay advances by with each yield.
 
+        Yields
+        ------
+        dict
+            A dict containing the position, velocity, masses and radii of the 
+            discs as numpy arrays. Keys
+            correspond to:
+            - 'r' - position
+            - 'v' - velocity
+            - 'm' - mass
+            - 'R' - radius
         
+        """
+
+        current_state = self.initial_state
+
+        yield current_state
+
+        cdef size_t N_events = self.s.events.size()
+        cdef size_t cur_event_ind = 0
+        cdef size_t cur_disc
+        cdef double current_t = 0.0
+        cdef double time_step
+
+        # Start time for the current period
+        cdef int cur_period = 1
+
+        # The inner loop corresponds to advancing one event at a time, the 
+        # outer loop corresponds to advancing by dt
+        while True:
+
+            while cur_event_ind < N_events:
+                # Next event is in the current period
+                if self.s.events[cur_event_ind].t <= cur_period*dt:
+                    # advance to next event
+                    time_step = self.s.events[cur_event_ind].t - current_t
+                    current_t = self.s.events[cur_event_ind].t
+
+                    current_state['r'] += time_step*current_state['v']
+
+                    cur_disc = self.s.events[cur_event_ind].ind
+
+                    # Update the colliding particle accordingly
+                    for ind in range(2):
+                        current_state['v'][cur_disc][ind] = self.s.events[cur_event_ind].new_v[ind]
+                else:
+                    # advance to end of time interval and break
+                    time_step = cur_period*dt - current_t
+                    current_t = cur_period*dt
+
+                    current_state['r'] += time_step*current_state['v']
+
+                    break
+
+                cur_event_ind += 1
+            
+            # No more events to process
+            if cur_event_ind == N_events:
+                break
+
+            # Yield after checking there are no more events
+            yield current_state
+
+            cur_period += 1        
 
