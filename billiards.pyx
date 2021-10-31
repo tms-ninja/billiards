@@ -391,8 +391,97 @@ cdef class PySim():
 
         self.s.current_state.push_back(d)
 
+    def add_random_discs(self, bottom_left, top_right, N_discs, v, m, R):
+        """
+        Adds N_discs discs with random positions and velocity directions in a 
+        box defined by its bottom left and top right corners. Discs will be 
+        completely contained within this box.
 
-    
+        Parameters
+        ----------
+        bottom_left : numpy.ndarray
+            The bottom left corner of the box, expected to have shape (2,).
+        top_right : numpy.ndarray
+            The top right corner of the box, expected to have shape (2,).
+        N_discs : int
+            The number of discs that will be added.
+        v : float or numpy.ndarray
+            The speed added discs will have. If a numpy array is passed, it 
+            should have shape (N_discs,).
+        m : float or numpy.ndarray
+            The mass added discs will have. If a numpy array is passed, it 
+            should have shape (N_discs,).
+        R : float or numpy.ndarray
+            The radius added discs will have. If a numpy array is passed, it 
+            should have shape (N_discs,).
+
+        Returns
+        -------
+        None.
+
+        Raises
+        ------
+        RuntimeError
+            Raised if it failed to place a disc after 10 attempts. No new discs
+            are added to the simulation if this is raised.
+        
+        """
+
+        current_state = self.current_state
+
+        N_current_state = current_state['m'].shape[0]
+
+        mass = np.empty(N_current_state + N_discs, dtype=np.float64)
+
+        mass[:N_current_state] = current_state['m']
+        mass[N_current_state:] = m
+
+        radius = np.empty(N_current_state + N_discs, dtype=np.float64)
+
+        radius[:N_current_state] = current_state['R']
+        radius[N_current_state:] = R
+
+        velocity = np.empty((N_current_state + N_discs, 2), dtype=np.float64)
+        angle = np.random.random(N_discs)
+
+        velocity[:N_current_state] = current_state['v']
+        velocity[N_current_state:, 0] = v*np.cos(angle)
+        velocity[N_current_state:, 1] = v*np.sin(angle)
+
+        # Disc centres must be in a smaller box so they don't intersect the
+        # walls
+        bottom_left = bottom_left + R
+        top_right = top_right - R
+
+        pos = np.empty((N_current_state + N_discs, 2), dtype=np.float64)
+        pos[:N_current_state] = current_state['r']
+
+        for d_ind in range(N_current_state, N_current_state + N_discs):
+            attempt = 10
+
+            while attempt > 0:
+                d_pos = bottom_left + (top_right - bottom_left) * np.random.random(2)
+
+                disc_is_colliding = False
+
+                # Test for collisions
+                for i in range(0, d_ind - 1):
+                    if np.linalg.norm(d_pos - pos[i]) < radius[d_ind] + radius[i]:
+                        disc_is_colliding = True
+                        break
+                else:
+                    pos[d_ind] = d_pos
+                    break  # New disc has no collisions
+
+                # Disc does have a collision, try again
+                attempt -= 1
+            else:
+                raise RuntimeError(f"Unable to place disc {d_ind - N_current_state} after 10 attempts.")
+
+        # Now add the discs to the simulation
+        for ind in range(N_current_state, N_current_state + N_discs):
+            self.add_disc(pos[ind], velocity[ind], mass[ind], radius[ind]) 
+
 
     # Properties
     @property
