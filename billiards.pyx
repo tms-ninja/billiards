@@ -465,7 +465,7 @@ cdef class PySim():
                 disc_is_colliding = False
 
                 # Test for collisions
-                for i in range(0, d_ind - 1):
+                for i in range(0, d_ind):
                     if np.linalg.norm(d_pos - pos[i]) < radius[d_ind] + radius[i]:
                         disc_is_colliding = True
                         break
