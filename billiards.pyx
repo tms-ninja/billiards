@@ -336,7 +336,7 @@ cdef class PySim():
         for ind in range(len(self._events), self.s.events.size()):
             self._events.append(PyEvent.from_PySim(self, ind))
 
-    def add_wall(self, double[:] start not None, double[:] end not None):
+    def add_wall(self, start, end):
         """
         Add a wall to the simulation with start point start and end point end.
 
@@ -361,7 +361,7 @@ cdef class PySim():
 
         self.s.walls.push_back(w)
 
-    def add_disc(self, double[:] r not None, double[:] v not None, double m, double R):
+    def add_disc(self, r, v, double m, double R):
         """
         Add a disc to the simulation with initial position r, velocity v, mass m
         and radius R.
