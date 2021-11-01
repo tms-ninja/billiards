@@ -236,13 +236,22 @@ Here we detail the structure of the Cython wrapper and interface to Python.
     \item \texttt{PySim} wrapper for \texttt{Sim}.
     \begin{itemize}
         \item Should expose member variables as properties using python lists
-        \item Methods for adding discs/walls to the simulation individually
-        \item Method for adding discs in bulk randomly in a box, all with the same given parameters e.g. mass, radius etc. 
+        \item Method \texttt{setup()} to be called before running the simulation but after discs/walls have been added. Ensures the \texttt{Sim} object is internally set up appropriately.
+        \item Method \texttt{advance()} to advance the simulation by either a given number of collisions or duration, whichever is reached first.
+        \item Methods \texttt{add\_disc()} and \texttt{add\_wall()} for adding discs/walls to the simulation individually
+        \item Method \texttt{add\_random\_discs()} for adding discs in bulk randomly in a box, all with the given parameters e.g. mass, radius etc.
+        \item Method \texttt{add\_box\_walls()} for adding four walls in the shape of a box, defined by the position of the bottom-left and top-right corners.
         \item Although we expose discs as a python list, for analysis it may be more useful to access properties as \texttt{numpy} arrays. So we'll have a method that accepts certain parameters and returns a dictionary of \texttt{numpy} arrays corresponding to those parameters.
-        \item A setup method to be called before running the simulation. Ensures the \texttt{Sim} object is internally set up appropriately.
-        \item Method to get the initial state of the system
+        \item Property \texttt{initial\_state} to return the initial state of the system as a "state dictionary." Returns a dictionary where the keys correspond to names of disc properties (position, velocity, mass, etc.) and values are those properties as \texttt{numpy} arrays.
+        \item Property \texttt{current\_state} that behaves the same as \texttt{initial\_state} but returns a state dictionary for the current state of the simulation.
+        \item Two generators for replaying the simulation
+        \begin{itemize}
+            \item These start at the beginning of the simulation and yield the same state dictionary of \texttt{numpy} arrays the properties for \texttt{initial\_state} and \texttt{current\_state} do
+            \item The arrays in this dictionary are successively updated by reference
+            \item \texttt{replay\_by\_event()} for moving forward from one event to the next
+            \item \texttt{replay\_by\_time()} for moving forward at constant time intervals, useful for making an animation
+        \end{itemize}
     \end{itemize}
-    \item A generator for replaying the simulation
 \end{itemize}
 
 \subsection{Initial algorithm}
