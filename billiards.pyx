@@ -361,6 +361,36 @@ cdef class PySim():
 
         self.s.walls.push_back(w)
 
+    def add_box_walls(self, bottom_left, top_right):
+        """
+        Adds four walls in the shape of a box, defined by its bottom left and
+        top right corners.
+
+        Parameters
+        ----------
+        bottom_left : numpy.ndarray or list
+            The bottom left corner of the box. Expected to be a numpy array of 
+            shape (2,) or a list of length 2.
+        top_right : numpy.ndarray or list
+            The top right corner of the box. Expected to be a numpy array of 
+            shape (2,) or a list of length 2. 
+
+        Returns
+        -------
+        None.
+
+        """
+
+        left = bottom_left[0]
+        bottom = bottom_left[1]
+        right = top_right[0]
+        top = top_right[1]
+
+        self.add_wall([left, bottom], [left, top])
+        self.add_wall([left, top], [right, top])
+        self.add_wall([right, top], [right, bottom])
+        self.add_wall([right, bottom], [left, bottom])
+
     def add_disc(self, r, v, double m, double R):
         """
         Add a disc to the simulation with initial position r, velocity v, mass m
