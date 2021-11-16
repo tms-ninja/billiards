@@ -15,6 +15,10 @@ public:
 	Event();
 
 	Event(const double t, const size_t ind, const size_t second_ind, const bool disc_wall_col, const Vec2D &pos, const Vec2D &new_v);
+
+	// Returns the index of the disc this disc is collising with. If it is a disc_wall collision
+	// returns size_t_max
+	size_t get_disc_partner() const;
 };
 
 std::ostream& operator<<(std::ostream &os, const Event &e);
