@@ -472,7 +472,7 @@ cdef class PySim():
         radius[N_current_state:] = R
 
         velocity = np.empty((N_current_state + N_discs, 2), dtype=np.float64)
-        angle = np.random.random(N_discs)
+        angle = 2*np.pi*np.random.random(N_discs)
 
         velocity[:N_current_state] = current_state['v']
         velocity[N_current_state:, 0] = v*np.cos(angle)
