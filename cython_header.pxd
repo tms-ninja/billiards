@@ -53,6 +53,12 @@ cdef extern from "Event.h":
         size_t second_ind
         bool disc_wall_col
 
+# Declare std::array<Event, 2>
+cdef extern from "<array>" namespace "std" nogil:
+    cdef cppclass Array_Event "std::array<Event, 2>":
+        Array_Event() except+
+        Event& operator[](size_t)
+
 
 cdef extern from "Sim.cpp":
     pass
@@ -60,10 +66,15 @@ cdef extern from "Sim.cpp":
 cdef extern from "Sim.h":
     cdef cppclass Sim:
         Sim() except+
-        vector[Disc] current_state
         vector[Disc] initial_state
+
+        vector[size_t] new_vec
+        vector[size_t] old_vec
+
+        vector[Array_Event] events_vec  # Used for book keeping, events_vec[i, old_vec[i]] contains pseudo current_state
+
         vector[Wall] walls
-        vector[Event] events
+        vector[Event] events  # events that occured during the simulation
         double current_time
 
         void advance(size_t, double, bool)
