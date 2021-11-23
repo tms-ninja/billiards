@@ -31,6 +31,13 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 		new_vec[i] = old_vec[i];
 		old_vec[i] = 1 - new_vec[i];
 
+		// Update count of how many collisions have been performed
+		if (!initial_setup)
+			if (events_vec[i][new_vec[i]].disc_wall_col)
+				current_it += 2;
+			else
+				current_it += 1;
+
 		// Save old state as that is the event that has just been processed
 		if (!initial_setup && record_events)
 			events.push_back(events_vec[i][old_vec[i]]);
@@ -59,8 +66,8 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 				state_1.second_ind = k;
 				state_1.disc_wall_col = true;
 
-				if (!initial_setup)
-					current_it += 2;
+				//if (!initial_setup)
+				//	current_it += 2;
 			}
 			else  // Disc-disc collision
 			{
@@ -89,8 +96,8 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 					state_m.second_ind = size_t_max;
 				}
 
-				if (!initial_setup)
-					current_it += 1;
+				//if (!initial_setup)
+				//	current_it += 1;
 			}
 		}
 	}
