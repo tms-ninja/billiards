@@ -2,6 +2,8 @@
 
 void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 {
+	// Implements the algorithm described in Lubachevsky 1991
+
 	size_t current_it{ 0 };
 	double current_t{ 0.0 };
 
@@ -29,6 +31,10 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 		new_vec[i] = old_vec[i];
 		old_vec[i] = 1 - new_vec[i];
 
+		// Save old state as that is the event that has just been processed
+		if (!initial_setup && record_events)
+			events.push_back(events_vec[i][old_vec[i]]);
+
 		// Minimise over other discs
 		std::tie(j, P) = get_next_disc_coll(i);
 
@@ -38,17 +44,10 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 		R = P < Q ? P : Q;
 		events_vec[i][new_vec[i]].t = R;
 
-		//std::cout << current_t << '\t' << i << '\t' << j << '\t' << P << '\t' << k << '\t' << Q << '\n';
-
 		// Set about advancing discs and performing collisions
 		if (R < infinity)
 		{
 			Event& state_1{ events_vec[i][new_vec[i]] };
-
-			//state_1.pos = events_vec[i][old_vec[i]].pos;
-			//state_1.new_v = events_vec[i][old_vec[i]].new_v;
-
-			//state_1.t = R;
 
 			Sim::advance(events_vec[i][old_vec[i]], state_1, R);
 
@@ -59,10 +58,6 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 
 				state_1.second_ind = k;
 				state_1.disc_wall_col = true;
-
-				if (!initial_setup && record_events)
-					events.push_back(events_vec[i][old_vec[i]]);
-
 
 				if (!initial_setup)
 					current_it += 2;
@@ -75,7 +70,6 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 
 				Sim::advance(events_vec[j][old_vec[j]], state_2, R);
 
-
 				Sim::disc_disc_col(initial_state[i], initial_state[j], state_1, state_2);
 
 				m = state_2.get_disc_partner();
@@ -85,11 +79,6 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 
 				state_1.disc_wall_col = false;
 				state_2.disc_wall_col = false;
-
-				if (!initial_setup && record_events)
-				{
-					events.push_back(events_vec[i][old_vec[i]]);
-				}
 
 				if (m != size_t_max && m != i)
 				{
