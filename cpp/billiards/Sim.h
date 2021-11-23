@@ -67,6 +67,6 @@ private:
 	static Vec2D disc_pos(const Disc& d, const double t);
 
 	// Advances the disc to time t
-	static Event advance(Event e, double t);
+	static void advance(const Event &old_e, Event &new_e, double t);
 };
 

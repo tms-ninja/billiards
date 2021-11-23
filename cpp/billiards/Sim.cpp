@@ -45,11 +45,12 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 		{
 			Event& state_1{ events_vec[i][new_vec[i]] };
 
-			//state_1 = events_vec[i][old_vec[i]];
+			//state_1.pos = events_vec[i][old_vec[i]].pos;
+			//state_1.new_v = events_vec[i][old_vec[i]].new_v;
 
 			//state_1.t = R;
 
-			state_1 = Sim::advance(events_vec[i][old_vec[i]], R);
+			Sim::advance(events_vec[i][old_vec[i]], state_1, R);
 
 			// Disc-wall collision
 			if (Q < P)
@@ -63,7 +64,6 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 					events.push_back(events_vec[i][old_vec[i]]);
 
 
-
 				if (!initial_setup)
 					current_it += 2;
 			}
@@ -71,7 +71,9 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 			{
 				Event& state_2{ events_vec[j][new_vec[j]] };
 
-				state_2 = Sim::advance(events_vec[j][old_vec[j]], R);
+				state_2.t = R;
+
+				Sim::advance(events_vec[j][old_vec[j]], state_2, R);
 
 
 				Sim::disc_disc_col(initial_state[i], initial_state[j], state_1, state_2);
@@ -93,11 +95,7 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 				{
 					Event& state_m{ events_vec[m][new_vec[m]] };
 
-					double m_new_t{ state_m.t };
-
-					state_m = events_vec[m][old_vec[m]];
-
-					state_m = Sim::advance(state_m, m_new_t);
+					Sim::advance(events_vec[m][old_vec[m]], state_m, state_m.t);
 
 					state_m.second_ind = size_t_max;
 				}
@@ -217,15 +215,30 @@ double Sim::solve_quadratic(const Vec2D & alpha, const Vec2D & beta, const doubl
 
 	double a_dot_b{ alpha.dot(beta) };
 	double b2{ beta.mag2() };
+
+	// coefficients in the quadratic, use algorithm from numerical recipes
+	double a{a2};
+	double b{2.0*a_dot_b};
+	double c{b2 - R*R};
+
 	double disc;
 
-	disc = a_dot_b * a_dot_b + a2 * (R * R - b2);
+	disc = b*b - 4.0*a*c;
 
 	// Discriminant of quardatic is less than zero, no collision
 	if (disc < 0.0)
 		return std::numeric_limits<double>::infinity();
 
-	return -(a_dot_b + sqrt(disc)) / a2;
+	double q;
+
+	q = - (b + std::signbit(b)*sqrt(disc))/ 2.0;
+
+	double x1, x2;
+
+	x1 = a != 0.0 ? q/a : infinity;
+	x2 = c != 0.0 ? c/q : infinity;
+
+	return std::min(x1, x2);
 }
 
 double Sim::test_disc_disc_col(const Disc & d1, const Disc & d2, const Event &e1, const Event &e2)
@@ -251,6 +264,10 @@ double Sim::test_disc_disc_col(const Disc & d1, const Disc & d2, const Event &e1
 
 	t = Sim::solve_quadratic(alpha, beta, R);
 
+	// If it is very small and negative, consider it to be exactly 0.0
+	if (-5e-14 <= t && t < 0.0)
+		t = 0.0;
+
 	return t >= 0.0 ? t + start_time : std::numeric_limits<double>::infinity();
 }
 
@@ -267,7 +284,7 @@ double Sim::test_disc_wall_col(const Disc& d, const Event & e, const Wall & w)
 
 	// If t is only slightly negative, it's likely a collision is meant to be
 	// occuring at precisely t=0.0, so set it equal to zero
-	if (t < 0.0 && t >= -5e-15)
+	if (t < 0.0 && t >= -5e-14)
 		t = 0.0;
 
 	s = (e.pos + e.new_v*t - w.start).dot(diff) / diff.mag2();
@@ -304,12 +321,9 @@ Vec2D Sim::disc_pos(const Disc & d, const double t)
 	return d.r + t*d.v;
 }
 
-Event Sim::advance(Event e, double t)
+void Sim::advance(const Event &old_e, Event &new_e, double t)
 {
-	e.pos += (t - e.t) * e.new_v;
-
-	e.t = t;
-
-	return e;
+	new_e.pos = old_e.pos + (t - old_e.t)*old_e.new_v;
+	new_e.new_v = old_e.new_v;
 }
 
