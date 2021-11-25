@@ -14,7 +14,6 @@ constexpr size_t size_t_max = std::numeric_limits<size_t>::max();
 class Sim
 {
 public:
-	//std::vector<Disc> current_state;
 	std::vector<Disc> initial_state;
 	std::vector<Wall> walls;
 	std::vector<Event> events;

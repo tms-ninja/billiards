@@ -2,10 +2,10 @@
 
 void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 {
-	// Implements the algorithm described in Lubachevsky 1991
+	// Implements the algorithm described in (Lubachevsky 1991)
 
 	size_t current_it{ 0 };
-	double current_t{ 0.0 };
+	double current_t{ this->current_time };
 
 	// true means we are still finding disc with their new event time of 0.0
 	// Collisions for discs may not be performed in the order they take place
