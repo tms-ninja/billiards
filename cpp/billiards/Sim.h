@@ -61,8 +61,6 @@ private:
 	// Updates the time of disc ind
 	void update_time(size_t disc_ind, double new_t);
 
-	void verify_heap();
-
 	// Returns the Wall index which has the next collision for the disc and time
 	std::pair<size_t, double> get_next_wall_coll(size_t disc_ind);
 

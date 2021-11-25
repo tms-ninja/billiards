@@ -20,15 +20,9 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 	// Similarly, need to make disc-wall collisions count as 2
 	while (current_it < 2*max_iterations && current_t < max_t)
 	{
-		//std::cout << current_it << '\n';
-
-		//verify_heap();
-
 		// Determine i
 		i = get_min_time_ind();
 		current_t = get_time(i);
-
-		std::cout << "current_t = " << current_t << '\n';
 
 		if (current_t > 0.0)
 			initial_setup = false;
@@ -55,7 +49,6 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 		std::tie(k, Q) = get_next_wall_coll(i);
 
 		R = P < Q ? P : Q;
-		//events_vec[i][new_vec[i]].t = R;
 
 		update_time(i, R);
 
@@ -73,15 +66,10 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 
 				state_1.second_ind = k;
 				state_1.disc_wall_col = true;
-
-				//if (!initial_setup)
-				//	current_it += 2;
 			}
 			else  // Disc-disc collision
 			{
 				Event& state_2{ events_vec[j][new_vec[j]] };
-
-				//state_2.t = R;
 
 				update_time(j, R);
 
@@ -105,9 +93,6 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 
 					state_m.second_ind = size_t_max;
 				}
-
-				//if (!initial_setup)
-				//	current_it += 1;
 			}
 		}
 	}
@@ -156,36 +141,7 @@ void Sim::add_time_to_heap(size_t disc_ind)
 	// Assume pht is of correct size
 	pht[disc_ind] = pth.size() - 1;
 
-	size_t parent, current{ pth.size() - 1 };
-
-	while (true)
-	{
-		// Determine index of parent node
-		if (current % 2 == 0)
-			parent = current / 2 - 1;
-		else
-			parent = current / 2;
-
-		if (current == 0)
-			break;
-
-		if (get_time(pth[current]) < get_time(pth[parent]))
-		{
-			// Need to swap them in pht
-			std::swap(pht[pth[parent]], pht[pth[current]]);
-
-			// Need to swap parent and current in heap pth
-			std::swap(pth[parent], pth[current]);
-
-			current = parent;
-		}
-		else
-		{
-			// It is in the correct position in the heap
-			break;
-		}
-
-	}
+	up_heapify(disc_ind);
 }
 
 void Sim::down_heapify(size_t disc_ind)
@@ -304,51 +260,6 @@ void Sim::update_time(size_t disc_ind, double new_t)
 		// Heap property can only be violated for elements above disc_ind's
 		// current position
 		up_heapify(disc_ind);
-	}
-
-	verify_heap();
-}
-
-void Sim::verify_heap()
-{
-	size_t child_1, child_2;
-	bool error{ false };
-
-	//std::cout << "Heap length: " << pth.size() << '\n';
-
-	for (size_t parent = 0; parent < pth.size(); ++parent)
-	{
-		child_1 = 2 * parent + 1;
-		child_2 = 2 * parent + 2;
-
-		if (child_1 < pth.size() && get_time(pth[child_1]) < get_time(pth[parent]))
-		{
-			std::cout << "Invalid heap child 1: " << child_1 << "!\n";
-
-			error = true;
-
-			break;
-		}
-
-		if (child_2 < pth.size() && get_time(pth[child_2]) < get_time(pth[parent]))
-		{
-			std::cout << "Invalid heap child 2: " << child_2 << "!\n";
-
-			error = true;
-
-			break;
-		}
-			
-	}
-
-	if (error)
-	{
-		std::cout << "i\tpth[i]\tt\n";
-
-		for (size_t i = 0; i < pth.size(); i++)
-		{
-			std::cout << i << '\t' << pth[i] << '\t' << get_time(pth[i]) << '\n';
-		}
 	}
 }
 
