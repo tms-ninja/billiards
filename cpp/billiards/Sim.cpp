@@ -131,6 +131,7 @@ double Sim::get_time(size_t disc_ind)
 
 size_t Sim::get_min_time_ind()
 {
+	// index of disc with smallest time is at root of heap pht
 	return pth[0];
 }
 
@@ -146,6 +147,7 @@ void Sim::add_time_to_heap(size_t disc_ind)
 
 void Sim::down_heapify(size_t disc_ind)
 {
+	// parent, child_1 & child_2 are indices in pht, i.e. pht[parent]
 	size_t parent{ pht[disc_ind] };
 	size_t child_1, child_2;
 
@@ -250,15 +252,13 @@ void Sim::update_time(size_t disc_ind, double new_t)
 	
 	if (new_t > old_t)
 	{
-		// Heap property is maintained automatically for elements above disc_ind's
-		// current position. Can only be violated for elements below disc_ind's
-		// currnt position.
+		// Heap property is maintained automatically for parents of disc_ind's
+		// current position. Can only be violated for disc_ind's children
 		down_heapify(disc_ind);
 	}
 	else
 	{
-		// Heap property can only be violated for elements above disc_ind's
-		// current position
+		// Heap property can only be violated for disc_ind's parents
 		up_heapify(disc_ind);
 	}
 }
@@ -425,11 +425,6 @@ void Sim::disc_disc_col(Disc & d1, Disc & d2, Event& e1, Event &e2)
 
 	e1.new_v += d2.m*dv;
 	e2.new_v -= d1.m*dv;
-}
-
-Vec2D Sim::disc_pos(const Disc & d, const double t)
-{
-	return d.r + t*d.v;
 }
 
 void Sim::advance(const Event &old_e, Event &new_e, double t)

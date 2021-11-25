@@ -45,19 +45,19 @@ private:
 	// gets the current time for a disc, time[disc_ind, new[disc_ind]]
 	double get_time(size_t disc_ind);
 
-	// Returns the Disc whose time is smallest
+	// Returns the index of of the disc whose time is smallest
 	size_t get_min_time_ind();
 
-	// Adds the time corresponding to disc_ind to the heap
+	// Adds the time corresponding to disc_ind in initial_state to the heap
 	void add_time_to_heap(size_t disc_ind);
 
-	// Removes the time corresponding to disc_ind from the heap
+	// Down heapify the element in the heap with disc index disc_ind
 	void down_heapify(size_t disc_ind);
 
+	// Up heapify the element in the heap with disc index disc_ind
 	void up_heapify(size_t disc_ind);
 
-
-	// Updates the time of disc ind
+	// Updates the time of disc ind with new_t
 	void update_time(size_t disc_ind, double new_t);
 
 	// Returns the Wall index which has the next collision for the disc and time
@@ -81,11 +81,8 @@ private:
 	// Performs a disc-wall collision
 	static void disc_wall_col(Event &e, const Wall &w);
 
-	// performs a disc-wall collision
+	// performs a disc-disc collision
 	static void disc_disc_col(Disc &d1, Disc &d2, Event& e1, Event &e2);
-
-	// Computes position of disc d at time t
-	static Vec2D disc_pos(const Disc& d, const double t);
 
 	// Advances the disc to time t
 	static void advance(const Event &old_e, Event &new_e, double t);
