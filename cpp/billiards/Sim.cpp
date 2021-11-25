@@ -20,9 +20,15 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 	// Similarly, need to make disc-wall collisions count as 2
 	while (current_it < 2*max_iterations && current_t < max_t)
 	{
+		//std::cout << current_it << '\n';
+
+		//verify_heap();
+
 		// Determine i
 		i = get_min_time_ind();
 		current_t = get_time(i);
+
+		std::cout << "current_t = " << current_t << '\n';
 
 		if (current_t > 0.0)
 			initial_setup = false;
@@ -49,7 +55,9 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 		std::tie(k, Q) = get_next_wall_coll(i);
 
 		R = P < Q ? P : Q;
-		events_vec[i][new_vec[i]].t = R;
+		//events_vec[i][new_vec[i]].t = R;
+
+		update_time(i, R);
 
 		// Set about advancing discs and performing collisions
 		if (R < infinity)
@@ -73,7 +81,9 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 			{
 				Event& state_2{ events_vec[j][new_vec[j]] };
 
-				state_2.t = R;
+				//state_2.t = R;
+
+				update_time(j, R);
 
 				Sim::advance(events_vec[j][old_vec[j]], state_2, R);
 
@@ -107,6 +117,11 @@ void Sim::setup()
 {
 	events_vec.resize(initial_state.size());
 
+	new_vec.resize(initial_state.size(), 0);
+	old_vec.resize(initial_state.size(), 1);
+
+	pht.resize(initial_state.size());
+
 	for (size_t ind = 0; ind < initial_state.size(); ++ind)
 	{
 		auto& elem{ events_vec[ind] };
@@ -118,11 +133,10 @@ void Sim::setup()
 		elem[0].second_ind = std::numeric_limits<size_t>::max();
 		
 		elem[1] = elem[0];
+
+		// Add to the heap
+		add_time_to_heap(ind);
 	}
-
-	new_vec.resize(initial_state.size(), 0);
-	old_vec.resize(initial_state.size(), 1);
-
 }
 
 double Sim::get_time(size_t disc_ind)
@@ -132,20 +146,210 @@ double Sim::get_time(size_t disc_ind)
 
 size_t Sim::get_min_time_ind()
 {
-	double current_best_t{ std::numeric_limits<double>::infinity() };
-	size_t best_ind{ 0 };
+	return pth[0];
+}
 
-	for (size_t ind = 0; ind < events_vec.size(); ++ind)
+void Sim::add_time_to_heap(size_t disc_ind)
+{
+	pth.push_back(disc_ind);
+	
+	// Assume pht is of correct size
+	pht[disc_ind] = pth.size() - 1;
+
+	size_t parent, current{ pth.size() - 1 };
+
+	while (true)
 	{
-		if (get_time(ind) < current_best_t)
-		{
-			current_best_t = get_time(ind);
+		// Determine index of parent node
+		if (current % 2 == 0)
+			parent = current / 2 - 1;
+		else
+			parent = current / 2;
 
-			best_ind = ind;
+		if (current == 0)
+			break;
+
+		if (get_time(pth[current]) < get_time(pth[parent]))
+		{
+			// Need to swap them in pht
+			std::swap(pht[pth[parent]], pht[pth[current]]);
+
+			// Need to swap parent and current in heap pth
+			std::swap(pth[parent], pth[current]);
+
+			current = parent;
 		}
+		else
+		{
+			// It is in the correct position in the heap
+			break;
+		}
+
+	}
+}
+
+void Sim::down_heapify(size_t disc_ind)
+{
+	size_t parent{ pht[disc_ind] };
+	size_t child_1, child_2;
+
+	while (true)
+	{
+		child_1 = 2 * parent + 1;
+		child_2 = 2 * parent + 2;
+
+		if (child_1 > pth.size() - 1)
+		{
+			// No children
+			break;
+		}
+		else if (child_2 > pth.size() - 1)
+		{
+			// Only one child, child 1
+			if (get_time(pth[child_1]) < get_time(pth[parent]))
+			{
+				// Need to swap them in pht
+				std::swap(pht[pth[parent]], pht[pth[child_1]]);
+
+				// Need to swap parent and current in heap pth
+				std::swap(pth[parent], pth[child_1]);
+			}
+
+			break;
+		}
+		else
+		{
+			// Two children, need to compare to the smallest
+			size_t min_child;
+
+			if (get_time(pth[child_1]) < get_time(pth[child_2]))
+				min_child = child_1;
+			else
+				min_child = child_2;
+
+
+			if (get_time(pth[min_child]) < get_time(pth[parent]))
+			{
+				// Need to swap them in pht
+				std::swap(pht[pth[parent]], pht[pth[min_child]]);
+
+				// Need to swap parent and current in heap pth
+				std::swap(pth[parent], pth[min_child]);
+			}
+			else
+			{
+				// time at parent is smaller than either child, heap property restored
+				break;
+			}
+
+			parent = min_child;
+		}
+
+	}
+}
+
+void Sim::up_heapify(size_t disc_ind)
+{
+	size_t parent, child{ pht[disc_ind] };
+
+	while (true)
+	{
+		// Determine index of parent node
+		if (child % 2 == 0)
+			parent = child / 2 - 1;
+		else
+			parent = child / 2;
+
+		if (child == 0)
+			break;
+
+		if (get_time(pth[child]) < get_time(pth[parent]))
+		{
+			// Need to swap them in pht
+			std::swap(pht[pth[parent]], pht[pth[child]]);
+
+			// Need to swap parent and current in heap pth
+			std::swap(pth[parent], pth[child]);
+
+			child = parent;
+		}
+		else
+		{
+			// It is in the correct position in the heap
+			break;
+		}
+
 	}
 
-	return best_ind;
+}
+
+void Sim::update_time(size_t disc_ind, double new_t)
+{
+	double old_t{ get_time(disc_ind) };
+
+	events_vec[disc_ind][new_vec[disc_ind]].t = new_t;
+
+	if (new_t == old_t)
+		return;
+	
+	if (new_t > old_t)
+	{
+		// Heap property is maintained automatically for elements above disc_ind's
+		// current position. Can only be violated for elements below disc_ind's
+		// currnt position.
+		down_heapify(disc_ind);
+	}
+	else
+	{
+		// Heap property can only be violated for elements above disc_ind's
+		// current position
+		up_heapify(disc_ind);
+	}
+
+	verify_heap();
+}
+
+void Sim::verify_heap()
+{
+	size_t child_1, child_2;
+	bool error{ false };
+
+	//std::cout << "Heap length: " << pth.size() << '\n';
+
+	for (size_t parent = 0; parent < pth.size(); ++parent)
+	{
+		child_1 = 2 * parent + 1;
+		child_2 = 2 * parent + 2;
+
+		if (child_1 < pth.size() && get_time(pth[child_1]) < get_time(pth[parent]))
+		{
+			std::cout << "Invalid heap child 1: " << child_1 << "!\n";
+
+			error = true;
+
+			break;
+		}
+
+		if (child_2 < pth.size() && get_time(pth[child_2]) < get_time(pth[parent]))
+		{
+			std::cout << "Invalid heap child 2: " << child_2 << "!\n";
+
+			error = true;
+
+			break;
+		}
+			
+	}
+
+	if (error)
+	{
+		std::cout << "i\tpth[i]\tt\n";
+
+		for (size_t i = 0; i < pth.size(); i++)
+		{
+			std::cout << i << '\t' << pth[i] << '\t' << get_time(pth[i]) << '\n';
+		}
+	}
 }
 
 std::pair<size_t, double> Sim::get_next_wall_coll(size_t disc_ind)
