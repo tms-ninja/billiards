@@ -8,6 +8,7 @@ public:
 	Vec2D v;
 	double m;
 	double R;
+	double current_time;
 
 	Disc();
 

@@ -419,7 +419,7 @@ cdef class PySim():
         cdef Vec2D v_v = Vec2D(v[0], v[1])
         cdef Disc d = Disc(v_r, v_v, m, R)
 
-        self.s.current_state.push_back(d)
+        self.s.initial_state.push_back(d)
 
     def add_random_discs(self, bottom_left, top_right, N_discs, v, m, R):
         """
@@ -472,7 +472,7 @@ cdef class PySim():
         radius[N_current_state:] = R
 
         velocity = np.empty((N_current_state + N_discs, 2), dtype=np.float64)
-        angle = np.random.random(N_discs)
+        angle = 2*np.pi*np.random.random(N_discs)
 
         velocity[:N_current_state] = current_state['v']
         velocity[N_current_state:, 0] = v*np.cos(angle)
@@ -584,10 +584,22 @@ cdef class PySim():
 
         state_dict = {}
 
-        state_dict['r'] = _get_state_pos(self.s.current_state)
-        state_dict['v'] = _get_state_v(self.s.current_state)
-        state_dict['m'] = _get_state_m(self.s.current_state)
-        state_dict['R'] = _get_state_R(self.s.current_state)
+        state_dict['r'] = np.empty((self.s.initial_state.size(), 2), dtype=np.float64)
+        state_dict['v'] = np.empty((self.s.initial_state.size(), 2), dtype=np.float64)
+
+        # Assume mass and radii of discs don't change during simulation
+        state_dict['m'] = _get_state_m(self.s.initial_state)
+        state_dict['R'] = _get_state_R(self.s.initial_state)
+
+        cdef Event cur_disc
+
+
+        for d_ind in range(0, self.s.initial_state.size()):
+            cur_disc = self.s.events_vec[d_ind][self.s.old_vec[d_ind]]
+
+            for p_ind in range(0, 2):
+                state_dict['r'][d_ind, p_ind] = cur_disc.pos[p_ind]
+                state_dict['v'][d_ind, p_ind] = cur_disc.new_v[p_ind]
 
         return state_dict
 
