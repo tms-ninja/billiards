@@ -6,6 +6,8 @@
 \usepackage{bm}
 \usepackage{datetime}
 
+\def\bibsection{\section*{References}} 
+
 % differential operator
 \newcommand{\diff}{\textnormal{d}}
 
@@ -264,6 +266,20 @@ Initially we'll implement an inefficient $\mathcal{O}(N^2)$ algorithm as follows
     \item Repeat until the maximum number of collisions is reached or maximum duration is reached.
 \end{enumerate}
 The above doesn't account for what to do if a disc undergoes two collisions at the same time, but it'll be enough to check the basic physics of checking for collisions and performing collisions are done correctly.
+
+\subsection{A more efficient approach}
+A more efficient approach is described in \cite{Lubachevsky-1991}. Roughly, for each particle the algorithm keeps track of two events, The last collision the particle experienced and the next scheduled collision in the future. The algorithm iterates by:
+\begin{itemize}
+    \item Determining the particle with the next scheduled event
+    \item Making the scheduled event the most recent event the particle underwent 
+    \item Determining the next collision of the particle and scheduling it
+    \item If the next collision is disc-disc, appropriately scheduling the partner's new collision
+\end{itemize}
+The main computational effort is spent in determining the next collision and the next scheduled event. Determining the next time can be found in $\mathcal{O}(\log N)$ using a heap as suggested in \cite{Lubachevsky-1991}, whereas determining the next collision can be improved partitioning space into sectors.
+
+% Bibliography
+\bibliographystyle{ieeetr}
+\bibliography{bibo}
 
 \end{document}
 
