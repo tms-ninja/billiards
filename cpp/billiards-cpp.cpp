@@ -44,7 +44,7 @@ void run_perf_test(Sim s)
 {
 	s.advance(40000, 10000.0, true);
 
-	std::cout << s.events.size() << '\n';
+	std::cout << "Processed " << s.events.size() << " events, last event occured at " << s.events[s.events.size() - 1].t << '\n';
 }
 
 int main()
@@ -64,27 +64,23 @@ int main()
 
 	//Sim s;
 
-	//s.walls.push_back(Wall{ { 0.0,    0.0 }, {  0.0,  20.0 } });
-	//s.walls.push_back(Wall{ { 0.0,   20.0 }, { 20.0,  20.0 } });
-	//s.walls.push_back(Wall{ { 20.0,  20.0 }, { 20.0,   0.0 } });
-	//s.walls.push_back(Wall{ { 20.0,   0.0 }, { 0.0,    0.0 } });
+	//s.walls.push_back(Wall{ { 0.0,    0.0 }, {  0.0,  10.0 } });
+	//s.walls.push_back(Wall{ { 0.0,   10.0 }, { 10.0,  10.0 } });
+	//s.walls.push_back(Wall{ { 10.0,  10.0 }, { 10.0,   0.0 } });
+	//s.walls.push_back(Wall{ { 10.0,   0.0 }, { 0.0,    0.0 } });
 
 	//
-	////s.initial_state.push_back(Disc{ {3.0, 0.0}, {  1.0, 0.0}, 2.0, 1.0 });
-	////s.initial_state.push_back(Disc{ {8.0, 0.0}, { -2.0, 0.0}, 1.0, 1.0 });
+	//s.initial_state.push_back(Disc{ {3.0, 5.0}, {  1.0, 0.0}, 1.0, 1.0 });
+	//s.initial_state.push_back(Disc{ {7.0, 5.0 }, { -1.0, 0.0}, 1.0, 1.0 });
+	//s.initial_state.push_back(Disc{ {8.5, 8.0 }, { 0.0, 0.0}, 1.0, 1.0 });
+	//s.initial_state.push_back(Disc{ {5.0, 8.0 }, { 1.0, 0.0}, 1.0, 1.0 });
 
-
-	//// Balls 3 & 4 are the problem ones
-	//s.initial_state.push_back(Disc{ { 7.239913126835782, 18.851517861284936}, {3.998071892881838 , 3.0025690898542594}, 1.0, 1.0 });
-	//s.initial_state.push_back(Disc{ { 5.231042120901621, 11.542496833389839}, {4.641933726698081 , 1.858077306503383 }, 1.0, 1.0 });
-	//s.initial_state.push_back(Disc{ { 8.320421829253613,  3.452217796342845}, {3.940599214314751 , 3.077609109705449 }, 1.0, 1.0 });
-	//s.initial_state.push_back(Disc{ {10.794453177487236, 10.327174242865219}, {4.933195393774726 , 0.8146061667086861}, 1.0, 1.0 });
-	//s.initial_state.push_back(Disc{ {14.803391913373098, 17.809302579734435}, {2.85690869677404  , 4.103422071673454 }, 1.0, 1.0 });
-
+	//s.initial_state.push_back(Disc{ {2.0, 2.0 }, { -1.0, 0.0}, 1.0, 1.0 });
+	//s.initial_state.push_back(Disc{ {6.0, 2.0 }, { 1.0, 0.0}, 1.0, 1.0 });
 
 	//s.setup();
 
-	//s.advance(2000, 100.0, true);
+	//s.advance(20, 100.0, true);
 
 	//for (Event& e : s.events)
 	//	std::cout << e << '\n';
