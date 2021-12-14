@@ -65,13 +65,16 @@ cdef extern from "Sim.cpp":
     
 cdef extern from "Sim.h":
     cdef cppclass Sim:
-        Sim() except+
+        Sim(Vec2D, Vec2D) except+
         vector[Disc] initial_state
 
         vector[size_t] new_vec
         vector[size_t] old_vec
 
         vector[Array_Event] events_vec  # Used for book keeping, events_vec[i, old_vec[i]] contains pseudo current_state
+
+        Vec2D bottom_left
+        Vec2D top_right
 
         vector[Wall] walls
         vector[Event] events  # events that occured during the simulation

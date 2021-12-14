@@ -1,5 +1,23 @@
 #include "Sim.h"
 
+Sim::Sim(Vec2D bottom_left, Vec2D top_right)
+	: bottom_left{bottom_left}, top_right{top_right}
+{
+	// Add walls as we have the dimensions of the box
+	double left, right, top, bottom;
+	Vec2D start, end;
+
+	left = bottom_left[0];
+	bottom = bottom_left[1];
+	right = top_right[0];
+	top = top_right[1];
+
+	walls.push_back(Wall{ { left,  bottom }, { left,  top } });
+	walls.push_back(Wall{ { left,  top },    { right, top } });
+	walls.push_back(Wall{ { right, top },    { right, bottom } });
+	walls.push_back(Wall{ { right, bottom }, { left,  bottom } });
+}
+
 void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 {
 	// Implements the algorithm described in (Lubachevsky 1991)

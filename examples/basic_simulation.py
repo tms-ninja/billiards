@@ -16,7 +16,7 @@ discs = [
     {'start': [7.0, np.sqrt(2.0)], 'v': [-1.0, 0.0], 'm': 4.0, 'R': 2.0},
 ]
 
-s = bl.PySim()
+s = bl.PySim([-10.0, -10.0], [10.0, 10.0])
 
 for w in walls:
     s.add_wall(np.array(w['start']), np.array(w['end']))

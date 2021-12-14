@@ -18,12 +18,12 @@ def create_20_disc_sim():
     # Set the seed so we know add_random_discs() won't fail
     np.random.seed(30)
 
-    s = bl.PySim()
-
     box_bottom_left = [ 0.0,  0.0]
     box_top_right = [20.0, 20.0]
 
-    s.add_box_walls(box_bottom_left, box_top_right)
+    s = bl.PySim(box_bottom_left, box_top_right)
+
+    #s.add_box_walls(box_bottom_left, box_top_right)
     s.add_random_discs(np.array(box_bottom_left), np.array(box_top_right), 20, 5.0, 1.0, 1.0)
 
     s.setup()
@@ -38,9 +38,8 @@ class Test_PySim(unittest.TestCase):
     
     def test_disc_wall_col_vertical(self):
         """Tests discs collide with vertical walls correctly"""
-        s = bl.PySim()
+        s = bl.PySim([0.0, 0.0], [0.0, 10.0])
 
-        s.add_wall([0.0, 0.0], [0.0, 10.0])
         s.add_disc([3.0, 3.0], [-1.0, 1.0], 1.0, 1.0)
 
         s.setup()
@@ -62,9 +61,8 @@ class Test_PySim(unittest.TestCase):
 
     def test_disc_wall_col_horizontal(self):
         """Tests discs collide with horizontal walls correctly"""
-        s = bl.PySim()
+        s = bl.PySim([0.0, 0.0], [10.0, 10.0])
 
-        s.add_wall([0.0, 10.0], [10.0, 10.0])
         s.add_disc([3.0, 7.0], [1.0, 1.0], 1.0, 1.0)
 
         s.setup()
@@ -79,14 +77,14 @@ class Test_PySim(unittest.TestCase):
 
         self.assertAlmostEqual(ev.t, 2.0)
         self.assertEqual(ev.ind, 0)
-        self.assertEqual(ev.second_ind, 0)
+        self.assertEqual(ev.second_ind, 1)
         self.assertEqual(ev.disc_wall_col, True)
         assert_allclose(ev.pos, expected_pos)
         assert_allclose(ev.new_v, expected_v)
 
     def test_disc_wall_col_diagonal(self):
         """Tests discs collide with diagonal walls correctly"""
-        s = bl.PySim()
+        s = bl.PySim([-10.0, -10.0], [10.0, 10.0])
 
         s.add_wall([0.0, 0.0], [10.0, 10.0])
         s.add_disc([3.0, 0.0], [0.0, 1.0], 1.0, 1.0)
@@ -103,14 +101,14 @@ class Test_PySim(unittest.TestCase):
 
         self.assertAlmostEqual(ev.t, 3.0 - 1 / np.sin(np.pi/4))
         self.assertEqual(ev.ind, 0)
-        self.assertEqual(ev.second_ind, 0)
+        self.assertEqual(ev.second_ind, 4)
         self.assertEqual(ev.disc_wall_col, True)
         assert_allclose(ev.pos, expected_pos)
         assert_allclose(ev.new_v, expected_v, atol=1e-15)
 
     def test_disc_disc_col_vertical(self):
         """Tests vertial disc-disc collisions"""
-        s = bl.PySim()
+        s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
 
         s.add_disc([3.0, 0.0], [0.0, 1.0], 1.0, 1.0)
         s.add_disc([3.0, 10.0], [0.0, -1.0], 1.0, 1.0)
@@ -153,7 +151,7 @@ class Test_PySim(unittest.TestCase):
 
     def test_disc_disc_col_horizontally(self):
         """Tests horizontal disc-dsic collisions"""
-        s = bl.PySim()
+        s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
 
         s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 1.0)
         s.add_disc([10.0, 0.0], [-1.0, 0.0], 1.0, 1.0)
@@ -199,7 +197,7 @@ class Test_PySim(unittest.TestCase):
         Tests off centre disc-disc collisions, where disc velocity isn't
         towards the other disc's centre.
         """
-        s = bl.PySim()
+        s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
 
         s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 1.0)
         s.add_disc([10.0, np.sqrt(2)], [-1.0, 0.0], 1.0, 1.0)
@@ -242,7 +240,7 @@ class Test_PySim(unittest.TestCase):
 
     def test_disc_disc_col_speed(self):
         """Tests disc-disc collisions where each disc has a different speed"""
-        s = bl.PySim()
+        s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
 
         s.add_disc([0.0, 0.0], [2.0, 0.0], 1.0, 1.0)
         s.add_disc([10.0, 0.0], [-3.0, 0.0], 1.0, 1.0)
@@ -285,7 +283,7 @@ class Test_PySim(unittest.TestCase):
     
     def test_disc_disc_col_mass(self):
         """Tests disc-disc collisions where each disc has a different mass"""
-        s = bl.PySim()
+        s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
 
         s.add_disc([0.0, 0.0], [1.0, 0.0], 2.0, 1.0)
         s.add_disc([10.0, 0.0], [-1.0, 0.0], 3.0, 1.0)
@@ -328,7 +326,7 @@ class Test_PySim(unittest.TestCase):
     
     def test_disc_disc_col_radii(self):
         """Tests disc-disc collisions where each disc has a different radius"""
-        s = bl.PySim()
+        s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
 
         s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 2.0)
         s.add_disc([10.0, 0.0], [-1.0, 0.0], 1.0, 3.0)
