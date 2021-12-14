@@ -1,7 +1,7 @@
 import unittest
 
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 
 import billiards as bl
 
@@ -433,6 +433,17 @@ class Test_PySim(unittest.TestCase):
 
                 np.testing.assert_array_equal(R[i] + R[i+1:] <= dist, True)
 
+    def test_get_bounds(self):
+        """Tests get_sim_bounds property"""
 
+        bottom_left = np.array([1.0, 2.0])
+        top_right = np.array([3.0, 4.0])
+
+        s = bl.PySim(bottom_left, top_right)
+
+        bounds = s.bounds
+
+        assert_array_equal(bounds[0], bottom_left)
+        assert_array_equal(bounds[1], top_right)
 
         

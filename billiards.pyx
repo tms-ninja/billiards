@@ -641,6 +641,35 @@ cdef class PySim():
 
         return state_dict
 
+    @property
+    def bounds(self):
+        """
+        Returns the bounds of the simulation.
+
+        Parameters
+        ----------
+        None.
+
+        Returns
+        -------
+        tuple of numpy.ndarray
+            Tuple containing the coordinates of the bottom left and top right
+            corners.
+         
+        """
+
+        cdef double left, right, bottom, top
+
+        left = self.s.bottom_left[0]
+        bottom = self.s.bottom_left[1]
+        right = self.s.top_right[0]
+        top = self.s.top_right[1]
+
+        bottom_left = np.array([left, bottom])
+        top_right = np.array([right, top])
+
+        return (bottom_left, top_right)
+
     # Generators for replaying the simulation
     def replay_by_event(self):
         """
