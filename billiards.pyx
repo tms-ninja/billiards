@@ -269,12 +269,50 @@ cdef class PySim():
     Represents a simulation of discs, not intended to be initialized directly
     """
 
-    cdef Sim s
+    cdef Sim* s
     cdef list _events
 
-    def __init__(self):
+    def __init__(self, bottom_left, top_right):
         """
         Initilizes the PySim instance
+        
+        Parameters
+        ----------
+        bottom_left : numpy.ndarray or list
+            The bottom left corner of the box the simulation takes place in. 
+            Expected to be a numpy array with shape (2, ) or a list with length
+            2.
+        top_right : numpy.ndarray or list
+            The top right corner of the box the simulation takes place in. 
+            Expected to be a numpy array with shape (2, ) or a list with length
+            2.
+
+        Returns
+        -------
+        None.
+
+        """
+
+        cdef double left, right, bottom, top
+
+        left = bottom_left[0]
+        bottom = bottom_left[1]
+        right = top_right[0]
+        top = top_right[1]
+
+        cdef Vec2D v_bottom_left, v_top_right
+
+        v_bottom_left = Vec2D(left, bottom)
+        v_top_right = Vec2D(right, top)
+
+        self.s = new Sim(v_bottom_left, v_top_right)
+
+
+        self._events = []
+
+    def __dealloc__(self):
+        """
+        Deallocates the PySim instance
         
         Parameters
         ----------
@@ -286,7 +324,7 @@ cdef class PySim():
 
         """
 
-        self._events = []
+        del self.s
 
     def setup(self):
         """
@@ -602,6 +640,35 @@ cdef class PySim():
                 state_dict['v'][d_ind, p_ind] = cur_disc.new_v[p_ind]
 
         return state_dict
+
+    @property
+    def bounds(self):
+        """
+        Returns the bounds of the simulation.
+
+        Parameters
+        ----------
+        None.
+
+        Returns
+        -------
+        tuple of numpy.ndarray
+            Tuple containing the coordinates of the bottom left and top right
+            corners.
+         
+        """
+
+        cdef double left, right, bottom, top
+
+        left = self.s.bottom_left[0]
+        bottom = self.s.bottom_left[1]
+        right = self.s.top_right[0]
+        top = self.s.top_right[1]
+
+        bottom_left = np.array([left, bottom])
+        top_right = np.array([right, top])
+
+        return (bottom_left, top_right)
 
     # Generators for replaying the simulation
     def replay_by_event(self):

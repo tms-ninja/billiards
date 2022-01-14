@@ -15,13 +15,20 @@ class Sim
 {
 public:
 	std::vector<Disc> initial_state;
+
+	// bottom left and top right corners of the box the simulation takes place in
+	Vec2D bottom_left;
+	Vec2D top_right;
 	std::vector<Wall> walls;
+	
 	std::vector<Event> events;
 
 	std::vector<size_t> new_vec, old_vec;
 	std::vector<std::array<Event, 2>> events_vec;
 
 	double current_time{ 0.0 };
+
+	Sim(Vec2D bottom_left, Vec2D top_right);
 
 	// Advances the simulation by either max_iterations or max_t, whichever is reached sooner
 	void advance(size_t max_iterations, double max_t, bool record_events);

@@ -18,12 +18,10 @@ walls = [
     {'start': [ 20.0,   0.0 ], 'end': [ 0.0,    0.0 ]},
 ]
 
-s = bl.PySim()
-
 box_bottom_left = [0.0, 0.0]
 box_top_right = [20.0, 20.0]
 
-s.add_box_walls(box_bottom_left, box_top_right)
+s = bl.PySim(box_bottom_left, box_top_right)
 
 s.add_random_discs(np.array(box_bottom_left), np.array(box_top_right), 20, 5.0, 1.0, 1.0)
 

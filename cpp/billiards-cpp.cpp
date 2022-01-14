@@ -9,12 +9,12 @@
 // For testing performance improvements are actually improvements
 Sim setup_perf_test()
 {
-	Sim s;
+	Sim s{ {0.0, 0.0}, {10.0, 10.0} };
 
-	s.walls.push_back(Wall{ { 0.0,    0.0 }, {  0.0,  10.0 } });
-	s.walls.push_back(Wall{ { 0.0,   10.0 }, { 10.0,  10.0 } });
-	s.walls.push_back(Wall{ { 10.0,  10.0 }, { 10.0,   0.0 } });
-	s.walls.push_back(Wall{ { 10.0,   0.0 }, { 0.0,    0.0 } });
+	//s.walls.push_back(Wall{ { 0.0,    0.0 }, {  0.0,  10.0 } });
+	//s.walls.push_back(Wall{ { 0.0,   10.0 }, { 10.0,  10.0 } });
+	//s.walls.push_back(Wall{ { 10.0,  10.0 }, { 10.0,   0.0 } });
+	//s.walls.push_back(Wall{ { 10.0,   0.0 }, { 0.0,    0.0 } });
 
 	Vec2D pos, v;
 	double m{ 1.0 }, R{ 0.4 };
