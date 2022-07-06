@@ -38,7 +38,7 @@ class Test_PySim(unittest.TestCase):
     
     def test_disc_wall_col_vertical(self):
         """Tests discs collide with vertical walls correctly"""
-        s = bl.PySim([0.0, 0.0], [0.0, 10.0])
+        s = bl.PySim([0.0, 0.0], [10.0, 10.0])
 
         s.add_disc([3.0, 3.0], [-1.0, 1.0], 1.0, 1.0)
 

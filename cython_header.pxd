@@ -43,6 +43,15 @@ cdef extern from "Event.cpp":
     pass
 
 cdef extern from "Event.h":
+    cdef cppclass Collision_Type:
+        pass
+
+cdef extern from "Event.h" namespace "Collision_Type":
+    cdef Collision_Type Disc_Disc
+    cdef Collision_Type Disc_Wall
+    cdef Collision_Type Disc_Boundary
+
+cdef extern from "Event.h":
     cdef cppclass Event:
         Event() except+
         Event(double, size_t, size_t, bool, Vec2D&, Vec2D&) except+
@@ -51,7 +60,7 @@ cdef extern from "Event.h":
         double t
         size_t ind
         size_t second_ind
-        bool disc_wall_col
+        Collision_Type disc_wall_col
 
 # Declare std::array<Event, 2>
 cdef extern from "<array>" namespace "std" nogil:
@@ -65,7 +74,7 @@ cdef extern from "Sim.cpp":
     
 cdef extern from "Sim.h":
     cdef cppclass Sim:
-        Sim(Vec2D, Vec2D) except+
+        Sim(Vec2D, Vec2D, size_t, size_t) except+
         vector[Disc] initial_state
 
         vector[size_t] new_vec
@@ -82,4 +91,5 @@ cdef extern from "Sim.h":
 
         void advance(size_t, double, bool)
         void setup()
+        void add_disc(Vec2D pos, Vec2D v, double m, double R)
     

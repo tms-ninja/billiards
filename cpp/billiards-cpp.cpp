@@ -30,7 +30,7 @@ Sim setup_perf_test()
 			v = { static_cast<double>((i * 17 + j) % 7), static_cast<double>((j * 13 + i) % 11) };
 			v /= v.mag();
 
-			s.initial_state.emplace_back(pos, v, m, R);
+			s.add_disc(pos, v, m, R);
 		}
 	}
 
@@ -49,28 +49,29 @@ void run_perf_test(Sim s)
 
 int main()
 {
-	Sim s{ setup_perf_test() };
+	//Sim s{ setup_perf_test() };
 
-	auto begin = std::chrono::steady_clock::now();
+	//auto begin = std::chrono::steady_clock::now();
 
-	for (size_t i = 0; i < 10; i++)
-	{
-		run_perf_test(s);
-	}
+	//for (size_t i = 0; i < 10; i++)
+	//{
+	//	run_perf_test(s);
+	//}
 
-	auto end = std::chrono::steady_clock::now();
+	//auto end = std::chrono::steady_clock::now();
 
-	std::cout << "Total duration: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000 << "[ms]" << std::endl;
+	//std::cout << "Total duration: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000 << "[ms]" << std::endl;
 
-	//Sim s;
+	Sim s{ { 0.0,    0.0 }, { 10.0,  10.0 }, 2, 2 };
 
 	//s.walls.push_back(Wall{ { 0.0,    0.0 }, {  0.0,  10.0 } });
 	//s.walls.push_back(Wall{ { 0.0,   10.0 }, { 10.0,  10.0 } });
 	//s.walls.push_back(Wall{ { 10.0,  10.0 }, { 10.0,   0.0 } });
 	//s.walls.push_back(Wall{ { 10.0,   0.0 }, { 0.0,    0.0 } });
 
-	//
-	//s.initial_state.push_back(Disc{ {3.0, 5.0}, {  1.0, 0.0}, 1.0, 1.0 });
+	
+	s.add_disc( { 2.0, 4.0 }, {1.0, 0.0}, 1.0, 1.0 );
+	s.add_disc({ 7.0, 4.0 }, { -1.0, 0.0 }, 1.0, 1.0);
 	//s.initial_state.push_back(Disc{ {7.0, 5.0 }, { -1.0, 0.0}, 1.0, 1.0 });
 	//s.initial_state.push_back(Disc{ {8.5, 8.0 }, { 0.0, 0.0}, 1.0, 1.0 });
 	//s.initial_state.push_back(Disc{ {5.0, 8.0 }, { 1.0, 0.0}, 1.0, 1.0 });
@@ -78,10 +79,12 @@ int main()
 	//s.initial_state.push_back(Disc{ {2.0, 2.0 }, { -1.0, 0.0}, 1.0, 1.0 });
 	//s.initial_state.push_back(Disc{ {6.0, 2.0 }, { 1.0, 0.0}, 1.0, 1.0 });
 
-	//s.setup();
+	s.setup();
 
-	//s.advance(20, 100.0, true);
+	std::cout << "Started\n";
 
-	//for (Event& e : s.events)
-	//	std::cout << e << '\n';
+	s.advance(20, 100.0, true);
+
+	for (Event& e : s.events)
+		std::cout << e << '\n';
 }

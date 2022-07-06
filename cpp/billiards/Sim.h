@@ -2,6 +2,7 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <tuple>
 #include <vector>
 #include "Vec2D.h"
 #include "Disc.h"
@@ -19,7 +20,19 @@ public:
 	// bottom left and top right corners of the box the simulation takes place in
 	Vec2D bottom_left;
 	Vec2D top_right;
-	std::vector<Wall> walls;
+	std::vector<Wall> walls;  // Walls containing the simulation
+
+	// Sectors
+	// Horizontal and vertical number of sectors, this is the true number including 
+	// the "shell" of sectors outside the simulation box
+	const size_t N, M;  
+
+	// First N+1 horizontal boundaries from left to right, then M+1 vertical bounraries from 
+	// bottom to top
+	std::vector<Wall> boundaries;
+
+	// Keeps track of which balls are in which sector
+	std::vector<std::vector<size_t>> sector_entires;
 	
 	std::vector<Event> events;
 
@@ -28,7 +41,9 @@ public:
 
 	double current_time{ 0.0 };
 
-	Sim(Vec2D bottom_left, Vec2D top_right);
+	// N and M are the number of sectors the simulation should be split up into in the 
+	// horizontal and vertical directions respectively
+	Sim(Vec2D bottom_left, Vec2D top_right, size_t N=1, size_t M=1);
 
 	// Advances the simulation by either max_iterations or max_t, whichever is reached sooner
 	void advance(size_t max_iterations, double max_t, bool record_events);
@@ -37,7 +52,12 @@ public:
 	// current_state to initial_state so we know how it began
 	void setup();
 
+	// Adds a disc to the simulation. Should not be called after the simulation has started
+	void add_disc(const Vec2D& pos, const Vec2D& v, double m, double R);
+
 private:
+
+
 	// Binary heap that minimises time[disc_ind, new[disc_ind]], so 
 	// time[pth[disc_ind], new[pth[disc_ind]]] is minimum
 	// **pth should always take a index for the heap, i.e. returns the ith disc
@@ -70,6 +90,9 @@ private:
 	// Returns the Wall index which has the next collision for the disc and time
 	std::pair<size_t, double> get_next_wall_coll(size_t disc_ind);
 
+	// Returns the boundary index which has the next collision for the disc and time
+	std::pair<size_t, double> get_next_boundary_coll(size_t disc_ind);
+
 	// Returns the disc index which has the next collision for the disc and time
 	std::pair<size_t, double> get_next_disc_coll(size_t disc_ind);
 
@@ -83,7 +106,13 @@ private:
 	static double test_disc_disc_col(const Disc &d1, const Disc &d2, const Event &e1, const Event &e2);
 
 	// Tests if a disc is going to collide with a wall, returns time of collision if they do, infinity otherwise
+	// Differs from test_disc_boundary_col() as it tests for the interaction of the edge of the disc with the 
+	// wall rather than the centre
 	static double test_disc_wall_col(const Disc& d, const Event &e, const Wall &w);
+
+	// Tests if a disc is going to collide with a boundary. Differs from test_disc_wall_col() as it tests 
+	// for the interaction of the centre of the disc with the boundary rather than the edge
+	static double test_disc_boundary_col(const Event& e, const Wall& w);
 
 	// Performs a disc-wall collision
 	static void disc_wall_col(Event &e, const Wall &w);
@@ -93,5 +122,14 @@ private:
 
 	// Advances the disc to time t
 	static void advance(const Event &old_e, Event &new_e, double t);
+
+
+
+	// Returns the sector ID of the sector the given position is in
+	size_t compute_sector_ID(const Vec2D& pos);
+
+	// Updates the sector ID of disc with index disc_ind based on the old_event that has just been processed
+	// Intended to be used after swapping new and old in advance()
+	void update_sector_ID(const size_t disc_ind, const Event& old_event);
 };
 
