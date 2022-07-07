@@ -9,12 +9,7 @@
 // For testing performance improvements are actually improvements
 Sim setup_perf_test()
 {
-	Sim s{ {0.0, 0.0}, {10.0, 10.0} };
-
-	//s.walls.push_back(Wall{ { 0.0,    0.0 }, {  0.0,  10.0 } });
-	//s.walls.push_back(Wall{ { 0.0,   10.0 }, { 10.0,  10.0 } });
-	//s.walls.push_back(Wall{ { 10.0,  10.0 }, { 10.0,   0.0 } });
-	//s.walls.push_back(Wall{ { 10.0,   0.0 }, { 0.0,    0.0 } });
+	Sim s{ {0.0, 0.0}, {10.0, 10.0}, 10, 10 };
 
 	Vec2D pos, v;
 	double m{ 1.0 }, R{ 0.4 };
@@ -39,7 +34,7 @@ Sim setup_perf_test()
 	return s;
 }
 
-// Deliberately take it by copy
+// Deliberately take it by copy so we start with a fresh simulation each time
 void run_perf_test(Sim s)
 {
 	s.advance(40000, 10000.0, true);
@@ -49,29 +44,28 @@ void run_perf_test(Sim s)
 
 int main()
 {
-	//Sim s{ setup_perf_test() };
+	std::cout << "Started\n";
+	Sim s{ setup_perf_test() };
 
-	//auto begin = std::chrono::steady_clock::now();
+	auto begin = std::chrono::steady_clock::now();
 
-	//for (size_t i = 0; i < 10; i++)
-	//{
-	//	run_perf_test(s);
-	//}
+	for (size_t i = 0; i < 10; i++)
+	{
+		run_perf_test(s);
+	}
 
-	//auto end = std::chrono::steady_clock::now();
+	auto end = std::chrono::steady_clock::now();
 
-	//std::cout << "Total duration: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000 << "[ms]" << std::endl;
+	std::cout << "Total duration: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count() / 1000 << "[ms]" << std::endl;
 
-	Sim s{ { 0.0,    0.0 }, { 10.0,  10.0 }, 2, 2 };
 
-	//s.walls.push_back(Wall{ { 0.0,    0.0 }, {  0.0,  10.0 } });
-	//s.walls.push_back(Wall{ { 0.0,   10.0 }, { 10.0,  10.0 } });
-	//s.walls.push_back(Wall{ { 10.0,  10.0 }, { 10.0,   0.0 } });
-	//s.walls.push_back(Wall{ { 10.0,   0.0 }, { 0.0,    0.0 } });
+
+
+	//Sim s{ { 0.0,    0.0 }, { 10.0,  10.0 }, 4, 4 };
 
 	
-	s.add_disc( { 2.0, 4.0 }, {1.0, 0.0}, 1.0, 1.0 );
-	s.add_disc({ 7.0, 4.0 }, { -1.0, 0.0 }, 1.0, 1.0);
+	//s.add_disc( { 2.0, 4.0 }, {1.0, 0.0}, 1.0, 1.0 );
+	//s.add_disc({ 7.0, 4.0 }, { -1.0, 0.0 }, 1.0, 1.0);
 	//s.initial_state.push_back(Disc{ {7.0, 5.0 }, { -1.0, 0.0}, 1.0, 1.0 });
 	//s.initial_state.push_back(Disc{ {8.5, 8.0 }, { 0.0, 0.0}, 1.0, 1.0 });
 	//s.initial_state.push_back(Disc{ {5.0, 8.0 }, { 1.0, 0.0}, 1.0, 1.0 });
@@ -79,12 +73,12 @@ int main()
 	//s.initial_state.push_back(Disc{ {2.0, 2.0 }, { -1.0, 0.0}, 1.0, 1.0 });
 	//s.initial_state.push_back(Disc{ {6.0, 2.0 }, { 1.0, 0.0}, 1.0, 1.0 });
 
-	s.setup();
+	//s.setup();
 
-	std::cout << "Started\n";
+	//std::cout << "started\n";
 
-	s.advance(20, 100.0, true);
+	//s.advance(20, 100.0, true);
 
-	for (Event& e : s.events)
-		std::cout << e << '\n';
+	//for (Event& e : s.events)
+	//	std::cout << e << '\n';
 }
