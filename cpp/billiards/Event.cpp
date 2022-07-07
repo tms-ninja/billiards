@@ -19,7 +19,7 @@ size_t Event::get_disc_partner() const
 
 std::ostream & operator<<(std::ostream & os, const Event & e)
 {
-	std::cout << e.t << '\t' << e.ind << '\t' << e.second_ind << '\t' << static_cast<int>(e.disc_wall_col) << '\t' << e.pos << '\t' << e.new_v;
+	os << e.t << '\t' << e.ind << '\t' << e.second_ind << '\t' << static_cast<int>(e.disc_wall_col) << '\t' << e.pos << '\t' << e.new_v;
 
 	return os;
 }
