@@ -214,7 +214,9 @@ cdef class PyEvent():
             
         """
 
-        return self._sim.s.events[self._e_ind].disc_wall_col
+        cdef Collision_Type col_type = self._sim.s.events[self._e_ind].disc_wall_col
+
+        return <int>col_type
 
     @property
     def pos(self):
@@ -272,7 +274,7 @@ cdef class PySim():
     cdef Sim* s
     cdef list _events
 
-    def __init__(self, bottom_left, top_right):
+    def __init__(self, bottom_left, top_right, size_t N=1, size_t M=1):
         """
         Initilizes the PySim instance
         
@@ -286,6 +288,12 @@ cdef class PySim():
             The top right corner of the box the simulation takes place in. 
             Expected to be a numpy array with shape (2, ) or a list with length
             2.
+        N : int
+            Number of sectors the simulation box is split into in the horizontal
+            direction. This only sectors within the simulation box boundaries.
+        M : int
+            Number of sectors the simulation box is split into in the vertical
+            direction. This only sectors within the simulation box boundaries.
 
         Returns
         -------
@@ -305,7 +313,7 @@ cdef class PySim():
         v_bottom_left = Vec2D(left, bottom)
         v_top_right = Vec2D(right, top)
 
-        self.s = new Sim(v_bottom_left, v_top_right)
+        self.s = new Sim(v_bottom_left, v_top_right, N, M)
 
 
         self._events = []
@@ -455,9 +463,8 @@ cdef class PySim():
 
         cdef Vec2D v_r = Vec2D(r[0], r[1])
         cdef Vec2D v_v = Vec2D(v[0], v[1])
-        cdef Disc d = Disc(v_r, v_v, m, R)
 
-        self.s.initial_state.push_back(d)
+        self.s.add_disc(v_r, v_v, m, R)
 
     def add_random_discs(self, bottom_left, top_right, N_discs, v, m, R):
         """

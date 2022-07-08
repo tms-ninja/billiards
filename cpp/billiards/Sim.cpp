@@ -1,7 +1,8 @@
 #include "Sim.h"
 
-Sim::Sim(Vec2D bottom_left, Vec2D top_right)
-	: bottom_left{bottom_left}, top_right{top_right}
+Sim::Sim(Vec2D bottom_left, Vec2D top_right, size_t N, size_t M)
+	: bottom_left{bottom_left}, top_right{top_right}, N{N+2}, M{M+2},
+	sector_entires((N+2)*(M+2))
 {
 	// Add walls as we have the dimensions of the box
 	double left, right, top, bottom;
@@ -16,6 +17,24 @@ Sim::Sim(Vec2D bottom_left, Vec2D top_right)
 	walls.push_back(Wall{ { left,  top },    { right, top } });
 	walls.push_back(Wall{ { right, top },    { right, bottom } });
 	walls.push_back(Wall{ { right, bottom }, { left,  bottom } });
+
+	// Setup up boundaries for sectoring
+	double sector_width{ (right - left) / (this->N - 2) }, sector_height{ (top - bottom) / (this->M - 2) };
+
+	// Add horizontal boundaires first, then vertical
+	for (int i = 0; i <= this->N; i++)
+	{
+		double x_pos{ left + (i-1) * sector_width };
+
+		boundaries.push_back(Wall{ {x_pos, top + sector_height }, {x_pos, bottom - sector_height} });
+	}
+
+	for (int i = 0; i <= this->M; i++)
+	{
+		double y_pos{ bottom + (i-1) * sector_height };
+
+		boundaries.push_back(Wall{ {left - sector_width, y_pos}, {right + sector_width, y_pos} });
+	}
 }
 
 void Sim::advance(size_t max_iterations, double max_t, bool record_events)
@@ -31,8 +50,8 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 	// be undone
 	bool initial_setup{ true }; 
 
-	size_t i, j, k, m;
-	double P, Q, R;
+	size_t i, j, k, m, boundary_ind;
+	double P, Q, R, boundary_t;
 
 	// Run to max_iterations*2 as disc-disc collisions count involve two iterations
 	// Similarly, need to make disc-wall collisions count as 2
@@ -49,24 +68,34 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 		new_vec[i] = old_vec[i];
 		old_vec[i] = 1 - new_vec[i];
 
+		Event& old_event_i{ events_vec[i][old_vec[i]] };
+
+		// update sector IDs
+		update_sector_ID(i, old_event_i);
+
 		// Update count of how many collisions have been performed
+		// We count disc-disc as one collision so we count disc-wall as 2 to avoid double counting
+		// disc-disc collisions 
 		if (!initial_setup)
-			if (events_vec[i][new_vec[i]].disc_wall_col)
+			if (old_event_i.disc_wall_col==Collision_Type::Disc_Wall)
 				current_it += 2;
-			else
+			else if (old_event_i.disc_wall_col == Collision_Type::Disc_Disc)
 				current_it += 1;
 
 		// Save old state as that is the event that has just been processed
-		if (!initial_setup && record_events)
-			events.push_back(events_vec[i][old_vec[i]]);
+		if (!initial_setup && record_events && old_event_i.disc_wall_col!=Collision_Type::Disc_Boundary)
+			events.push_back(old_event_i);
 
 		// Minimise over other discs
 		std::tie(j, P) = get_next_disc_coll(i);
 
-		// Minimise over boundaries
+		// Minimise over walls
 		std::tie(k, Q) = get_next_wall_coll(i);
 
-		R = P < Q ? P : Q;
+		// Minimise over boundaries
+		std::tie(boundary_ind, boundary_t) = get_next_boundary_coll(i);
+
+		R = std::min(std::min(Q, boundary_t), P);
 
 		update_time(i, R);
 
@@ -75,15 +104,22 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 		{
 			Event& state_1{ events_vec[i][new_vec[i]] };
 
-			Sim::advance(events_vec[i][old_vec[i]], state_1, R);
+			Sim::advance(old_event_i, state_1, R);
 
-			// Disc-wall collision
-			if (Q < P)
+			if (boundary_t < P || Q < P)  // Collision with either wall or boundary first
 			{
-				Sim::disc_wall_col(state_1, walls[k]);
+				if (boundary_t < Q)  // Collision with boundary first
+				{
+					state_1.second_ind = boundary_ind;
+					state_1.disc_wall_col = Collision_Type::Disc_Boundary;
+				}
+				else  // Collision with wall first
+				{
+					Sim::disc_wall_col(state_1, walls[k]);
 
-				state_1.second_ind = k;
-				state_1.disc_wall_col = true;
+					state_1.second_ind = k;
+					state_1.disc_wall_col = Collision_Type::Disc_Wall;
+				}
 			}
 			else  // Disc-disc collision
 			{
@@ -100,8 +136,8 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 				state_1.second_ind = j;
 				state_2.second_ind = i;
 
-				state_1.disc_wall_col = false;
-				state_2.disc_wall_col = false;
+				state_1.disc_wall_col = Collision_Type::Disc_Disc;
+				state_2.disc_wall_col = Collision_Type::Disc_Disc;
 
 				if (m != size_t_max && m != i)
 				{
@@ -128,18 +164,29 @@ void Sim::setup()
 	for (size_t ind = 0; ind < initial_state.size(); ++ind)
 	{
 		auto& elem{ events_vec[ind] };
+		Disc& disc{ initial_state[ind] };
 
 		elem[0].t = 0.0;
-		elem[0].pos = initial_state[ind].r;
-		elem[0].new_v = initial_state[ind].v;
+		elem[0].pos = disc.r;
+		elem[0].new_v = disc.v;
 		elem[0].ind = ind;
 		elem[0].second_ind = std::numeric_limits<size_t>::max();
+		disc.sector_ID = compute_sector_ID(disc.r);
 		
 		elem[1] = elem[0];
 
 		// Add to the heap
 		add_time_to_heap(ind);
 	}
+}
+
+void Sim::add_disc(const Vec2D& pos, const Vec2D& v, double m, double R)
+{
+	size_t sector_ID{compute_sector_ID(pos)};
+
+	sector_entires.at(sector_ID).push_back(initial_state.size());
+
+	initial_state.emplace_back(pos, v, m, R, sector_ID);
 }
 
 double Sim::get_time(size_t disc_ind)
@@ -301,6 +348,70 @@ std::pair<size_t, double> Sim::get_next_wall_coll(size_t disc_ind)
 	return { best_wall, current_best_t };
 }
 
+std::pair<size_t, double> Sim::get_next_boundary_coll(size_t disc_ind)
+{
+	size_t sector_ID{ initial_state[disc_ind].sector_ID };
+
+	// coordinates of sector
+	size_t x{ sector_ID % N }, y{ sector_ID / N };
+
+	// First N+1 boundaries correspond to vertical boundaries going from left to right
+	// next M+1 are horizontal boundaries going from bottom to top
+	size_t boundary_indices[] = {
+		x,				// left
+		x + 1,			// right
+		N + 1 + y,		// bottom
+		N + 1 + y + 1	// top
+	};
+
+
+	double current_best_t{ infinity };
+	double current_boundary_t;
+	size_t best_boundary{ size_t_max };
+
+	const Event& e1{ events_vec[disc_ind][old_vec[disc_ind]] };
+
+	for (size_t boundary_ind : boundary_indices)
+	{
+		Wall& boundary{ boundaries[boundary_ind] };
+
+		current_boundary_t = test_disc_boundary_col(events_vec[disc_ind][old_vec[disc_ind]], boundary);
+
+		// Ensure if the previous event was a boundary collision, we ignore the previously interacting boundary
+		if (current_boundary_t < current_best_t && !(e1.disc_wall_col == Collision_Type::Disc_Boundary && e1.second_ind == boundary_ind))
+		{
+			// Check we haven't already processed the collision and are currently on the boundary
+			// Do this for cases where a disc crosses two boundaries at the same time
+			double left, right, top, bottom;
+
+			left = bottom_left[0];
+			bottom = bottom_left[1];
+			right = top_right[0];
+			top = top_right[1];
+
+			double sector_width{ (right - left) / (this->N - 2) }, sector_height{ (top - bottom) / (this->M - 2) };
+			
+			Vec2D sector_centre = bottom_left + Vec2D{ (x - 0.5) * sector_width, (y - 0.5) * sector_height };
+
+			Vec2D diff{ sector_centre - boundary.start };
+
+			// normal vector to wall, points "towards" centre of sector disc is currently in
+			Vec2D n{ diff - diff.dot(boundary.tangent)*boundary.tangent };
+
+			// disc is entering current sector or travelling along its boundary, ignore boundary
+			if (e1.new_v.dot(n) >= 0)
+				continue;
+			else
+			{
+				current_best_t = current_boundary_t;
+				best_boundary = boundary_ind;
+			}
+		}
+	}
+
+	return { best_boundary, current_best_t };
+}
+
 std::pair<size_t, double> Sim::get_next_disc_coll(size_t disc_ind)
 {
 	double best_time{ infinity };
@@ -310,23 +421,39 @@ std::pair<size_t, double> Sim::get_next_disc_coll(size_t disc_ind)
 	const Disc& d1{ initial_state[disc_ind] };
 	const Event& e1{ events_vec[disc_ind][old_vec[disc_ind]] };
 
-	for (size_t partner_ind = 0; partner_ind < initial_state.size(); ++partner_ind)
+	// sectors we need to check, starting with bottom left
+	size_t sector_ID_arr[] = {
+		d1.sector_ID - N - 1,
+		d1.sector_ID - N,
+		d1.sector_ID - N + 1,
+		d1.sector_ID - 1,
+		d1.sector_ID,
+		d1.sector_ID + 1,
+		d1.sector_ID + N - 1,
+		d1.sector_ID + N,
+		d1.sector_ID + N + 1,
+	};
+
+	for (size_t s_ID : sector_ID_arr)
 	{
-		if (partner_ind != disc_ind)
+		for (size_t partner_ind : sector_entires[s_ID])
 		{
-			const Disc& d2{ initial_state[partner_ind] };
-			const Event& e2{ events_vec[partner_ind][old_vec[partner_ind]] };
-
-			p_ij = test_disc_disc_col(d1, d2, e1, e2);
-
-			// Ignore partner_ind if it isn't earlier than the next scheduled time
-			// for partner_ind, ignore if its the same partner as e1.second_ind AND
-			// at the same time as e1.t - avoids processing the same collision twice
-			if (get_time(partner_ind) >= p_ij && p_ij < best_time &&
-				!(e1.get_disc_partner() == partner_ind && p_ij == e1.t))
+			if (partner_ind != disc_ind)
 			{
-				best_time = p_ij;
-				best_ind = partner_ind;
+				const Disc& d2{ initial_state[partner_ind] };
+				const Event& e2{ events_vec[partner_ind][old_vec[partner_ind]] };
+
+				p_ij = test_disc_disc_col(d1, d2, e1, e2);
+
+				// Ignore partner_ind if it isn't earlier than the next scheduled time
+				// for partner_ind, ignore if its the same partner as e1.second_ind AND
+				// at the same time as e1.t - avoids processing the same collision twice
+				if (get_time(partner_ind) >= p_ij && p_ij < best_time &&
+					!(e1.get_disc_partner() == partner_ind && p_ij == e1.t))
+				{
+					best_time = p_ij;
+					best_ind = partner_ind;
+				}
 			}
 		}
 	}
@@ -424,6 +551,24 @@ double Sim::test_disc_wall_col(const Disc& d, const Event & e, const Wall & w)
 	return e.t + t;
 }
 
+double Sim::test_disc_boundary_col(const Event& e, const Wall& w)
+{
+	double denominator{ w.tangent[0] * e.new_v[1] - w.tangent[1] * e.new_v[0] };
+
+	if (denominator == 0.0)
+	{
+		return infinity;
+	}
+
+	Vec2D diff{ e.pos - w.start };
+	double dt;
+
+	dt = (w.tangent[1] * diff[0] - w.tangent[0] * diff[1]) / denominator;
+
+	// May need to be careful when dt is nearly zero
+	return dt >= 0.0 ? e.t + dt : infinity;
+}
+
 void Sim::disc_wall_col(Event &e,  const Wall & w)
 {
 	Vec2D dv{ e.new_v - e.new_v.dot(w.tangent)*w.tangent };
@@ -449,5 +594,70 @@ void Sim::advance(const Event &old_e, Event &new_e, double t)
 {
 	new_e.pos = old_e.pos + (t - old_e.t)*old_e.new_v;
 	new_e.new_v = old_e.new_v;
+}
+
+size_t Sim::compute_sector_ID(const Vec2D& pos)
+{
+	double left, right, top, bottom;
+
+	left = bottom_left[0];
+	bottom = bottom_left[1];
+	right = top_right[0];
+	top = top_right[1];
+
+	double sector_width{ (right - left) / (N-2) }, sector_height{ (top - bottom) / (M-2) };
+
+	size_t x_ind, y_ind;
+
+	x_ind = static_cast<size_t>((pos[0] - left) / sector_width) + 1;
+	y_ind = static_cast<size_t>((pos[1] - bottom) / sector_height) + 1;
+
+	return y_ind*N + x_ind;
+}
+
+void Sim::update_sector_ID(const size_t disc_ind, const Event& old_event)
+{
+	Disc& d{ initial_state[disc_ind] };
+
+	// Only need to update sector IDs if we're dealing with a boundary collision
+	if (old_event.disc_wall_col != Collision_Type::Disc_Boundary)
+		return;
+
+	// remove the current entry
+	for (auto it = sector_entires[d.sector_ID].begin(); it != sector_entires[d.sector_ID].end(); ++it)
+	{
+		if (*it == disc_ind)
+		{
+			sector_entires[d.sector_ID].erase(it);
+			break;
+		}
+	}
+
+	// If we've just performed a boundary collision, we'll currently be on the boundary and
+	// compute_sector_ID() might not give the right answer
+	// coordinates of sector
+	size_t sector_ID{ d.sector_ID };
+	size_t x{ sector_ID % N }, y{ sector_ID / N };
+
+	size_t boundary_ind{ old_event.second_ind };
+
+	if (boundary_ind == x)  // left boundary
+	{
+		d.sector_ID = sector_ID - 1;
+	}
+	else if (boundary_ind == x + 1)  // right boundary
+	{
+		d.sector_ID = sector_ID + 1;
+	}
+	else if (boundary_ind == N + 1 + y)  // bottom boundary
+	{
+		d.sector_ID = sector_ID - N;
+	}
+	else  // top boundary
+	{
+		d.sector_ID = sector_ID + N;
+	}
+	
+	sector_entires[d.sector_ID].push_back(disc_ind);
 }
 
