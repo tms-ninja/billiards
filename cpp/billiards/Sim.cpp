@@ -18,7 +18,7 @@
 
 #include "Sim.h"
 
-Sim::Sim(Vec2D bottom_left, Vec2D top_right, size_t N, size_t M)
+Sim::Sim(Vec2D bottom_left, Vec2D top_right, size_t N, size_t M) 
 	: bottom_left{bottom_left}, top_right{top_right}, N{N+2}, M{M+2},
 	sector_entires((N+2)*(M+2))
 {
@@ -351,14 +351,35 @@ std::pair<size_t, double> Sim::get_next_wall_coll(size_t disc_ind)
 	double current_wall_t;
 	size_t best_wall{ size_t_max };
 
+	// Ignore checking for sectors not adjacent to a wall
+	size_t sector_ID{ initial_state[disc_ind].sector_ID };
+	size_t x{ sector_ID % N }, y{ sector_ID / N };
+
+	if (
+		2 <= x && x <= N-3 &&
+		2 <= y && y <= M-3
+		)
+		return { size_t_max, infinity };
+
+	// which walls we need to check
+	bool check_wall[] = {
+		x == 1,			// Left
+		y == M - 2,		// Right
+		x == N - 2,		// Top
+		y == 1			// Bottom
+	};
+
 	for (size_t wall_ind = 0; wall_ind < walls.size(); ++wall_ind)
 	{
-		current_wall_t = test_disc_wall_col(initial_state[disc_ind], events_vec[disc_ind][old_vec[disc_ind]], walls[wall_ind]);
-
-		if (current_wall_t < current_best_t)
+		if ((walls.size() == 4 && check_wall[wall_ind]) || walls.size() > 4)
 		{
-			current_best_t = current_wall_t;
-			best_wall = wall_ind;
+			current_wall_t = test_disc_wall_col(initial_state[disc_ind], events_vec[disc_ind][old_vec[disc_ind]], walls[wall_ind]);
+
+			if (current_wall_t < current_best_t)
+			{
+				current_best_t = current_wall_t;
+				best_wall = wall_ind;
+			}
 		}
 	}
 
