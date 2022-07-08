@@ -1,8 +1,22 @@
-#include "Event.h"
+// billiards: Program to model collisions between 2d discs
+// Copyright (C) 2022  Tom Spencer (tspencerprog@gmail.com)
+//
+// This file is part of billiards
+//
+// billiards is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-Event::Event()
-{
-}
+#include "Event.h"
 
 Event::Event(const double t, const size_t ind, const size_t second_ind, const Collision_Type disc_wall_col, const Vec2D &pos, const Vec2D &new_v)
 	: pos{ pos }, new_v{ new_v }, t{ t }, ind{ ind }, second_ind{ second_ind }, disc_wall_col{ disc_wall_col }
