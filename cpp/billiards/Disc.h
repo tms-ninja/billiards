@@ -30,7 +30,7 @@ public:
 
 	size_t sector_ID;
 
-	Disc();
+	Disc() = default;
 
 	Disc(const Vec2D &pos, const Vec2D &v, double m, double R, size_t sector_ID);
 };

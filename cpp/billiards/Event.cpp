@@ -18,10 +18,6 @@
 
 #include "Event.h"
 
-Event::Event()
-{
-}
-
 Event::Event(const double t, const size_t ind, const size_t second_ind, const Collision_Type disc_wall_col, const Vec2D &pos, const Vec2D &new_v)
 	: pos{ pos }, new_v{ new_v }, t{ t }, ind{ ind }, second_ind{ second_ind }, disc_wall_col{ disc_wall_col }
 {

@@ -25,7 +25,7 @@ class Vec2D
 	double data[2];
 
 public:
-	Vec2D();
+	Vec2D() = default;
 
 	Vec2D(double x, double y);
 
@@ -45,7 +45,7 @@ public:
 
 	inline double mag() const
 	{
-		return hypot(data[0], data[1]);
+		return std::hypot(data[0], data[1]);
 	}
 
 	inline double mag2() const

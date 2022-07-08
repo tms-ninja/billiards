@@ -24,7 +24,6 @@ Sim::Sim(Vec2D bottom_left, Vec2D top_right, size_t N, size_t M)
 {
 	// Add walls as we have the dimensions of the box
 	double left, right, top, bottom;
-	Vec2D start, end;
 
 	left = bottom_left[0];
 	bottom = bottom_left[1];
@@ -505,7 +504,7 @@ double Sim::solve_quadratic(const Vec2D & alpha, const Vec2D & beta, const doubl
 
 	double q;
 
-	q = - (b + std::signbit(b)*sqrt(disc))/ 2.0;
+	q = - (b + std::signbit(b)*std::sqrt(disc))/ 2.0;
 
 	double x1, x2;
 
