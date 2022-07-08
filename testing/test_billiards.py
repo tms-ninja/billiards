@@ -10,9 +10,10 @@ def total_KE(m, v):
 
     return np.sum(ke) / 2.0
 
-def create_20_disc_sim():
+def create_20_disc_sim(n_sector_x, n_sector_y):
     """
     Creates and runs a simulation containing 20 discs for verification pruposes
+    Can choose the number of sectors to be used in the simulation
     """
 
     # Set the seed so we know add_random_discs() won't fail
@@ -21,7 +22,7 @@ def create_20_disc_sim():
     box_bottom_left = [ 0.0,  0.0]
     box_top_right = [20.0, 20.0]
 
-    s = bl.PySim(box_bottom_left, box_top_right)
+    s = bl.PySim(box_bottom_left, box_top_right, n_sector_x, n_sector_y)
 
     #s.add_box_walls(box_bottom_left, box_top_right)
     s.add_random_discs(np.array(box_bottom_left), np.array(box_top_right), 20, 5.0, 1.0, 1.0)
@@ -373,7 +374,7 @@ class Test_PySim(unittest.TestCase):
         test simulation
         """
         
-        sim = create_20_disc_sim()
+        sim = create_20_disc_sim(1, 1)
 
         s = sim['s']
 
@@ -393,7 +394,7 @@ class Test_PySim(unittest.TestCase):
         Tests discs don't go out of bounds during a test simulation
         """
 
-        sim = create_20_disc_sim()
+        sim = create_20_disc_sim(1, 1)
 
         s = sim['s']
         box_bottom_left, box_top_right = sim['box']
@@ -414,10 +415,31 @@ class Test_PySim(unittest.TestCase):
 
     def test_overlapping(self):
         """
-        Tests discs don't overlap during a test simulation
+        Tests discs don't overlap during a test simulation, no sectoring used
         """
 
-        sim = create_20_disc_sim()
+        sim = create_20_disc_sim(1, 1)  # No sectoring used
+        s = sim['s']
+
+        R = s.initial_state['R']
+
+        for c_state in s.replay_by_time(0.1):
+            pos = c_state['r']
+
+            for i in range(pos.shape[0]):
+
+                diff = pos[i+1:] - pos[i] 
+
+                dist = np.linalg.norm(diff, axis=1)
+
+                np.testing.assert_array_equal(R[i] + R[i+1:] <= dist, True)
+    
+    def test_overlapping_sectoring(self):
+        """
+        Tests discs don't overlap during a test simulation, sectoring used
+        """
+
+        sim = create_20_disc_sim(9, 9)  # sectoring used
         s = sim['s']
 
         R = s.initial_state['R']
