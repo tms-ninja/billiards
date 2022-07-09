@@ -411,38 +411,41 @@ std::pair<size_t, double> Sim::get_next_boundary_coll(size_t disc_ind)
 
 	for (size_t boundary_ind : boundary_indices)
 	{
-		Wall& boundary{ boundaries[boundary_ind] };
-
-		current_boundary_t = test_disc_boundary_col(events_vec[disc_ind][old_vec[disc_ind]], boundary);
-
 		// Ensure if the previous event was a boundary collision, we ignore the previously interacting boundary
-		if (current_boundary_t < current_best_t && !(e1.disc_wall_col == Collision_Type::Disc_Boundary && e1.second_ind == boundary_ind))
+		if (!(e1.disc_wall_col == Collision_Type::Disc_Boundary && e1.second_ind == boundary_ind))
 		{
-			// Check we haven't already processed the collision and are currently on the boundary
-			// Do this for cases where a disc crosses two boundaries at the same time
-			double left, right, top, bottom;
+			Wall& boundary{ boundaries[boundary_ind] };
 
-			left = bottom_left[0];
-			bottom = bottom_left[1];
-			right = top_right[0];
-			top = top_right[1];
+			current_boundary_t = test_disc_boundary_col(events_vec[disc_ind][old_vec[disc_ind]], boundary);
 
-			double sector_width{ (right - left) / (this->N - 2) }, sector_height{ (top - bottom) / (this->M - 2) };
-			
-			Vec2D sector_centre = bottom_left + Vec2D{ (x - 0.5) * sector_width, (y - 0.5) * sector_height };
-
-			Vec2D diff{ sector_centre - boundary.start };
-
-			// normal vector to wall, points "towards" centre of sector disc is currently in
-			Vec2D n{ diff - diff.dot(boundary.tangent)*boundary.tangent };
-
-			// disc is entering current sector or travelling along its boundary, ignore boundary
-			if (e1.new_v.dot(n) >= 0)
-				continue;
-			else
+			if (current_boundary_t < current_best_t)
 			{
-				current_best_t = current_boundary_t;
-				best_boundary = boundary_ind;
+				// Check we haven't already processed the collision and are currently on the boundary
+				// Do this for cases where a disc crosses two boundaries at the same time
+				double left, right, top, bottom;
+
+				left = bottom_left[0];
+				bottom = bottom_left[1];
+				right = top_right[0];
+				top = top_right[1];
+
+				double sector_width{ (right - left) / (this->N - 2) }, sector_height{ (top - bottom) / (this->M - 2) };
+
+				Vec2D sector_centre{ bottom_left + Vec2D{ (x - 0.5) * sector_width, (y - 0.5) * sector_height } };
+
+				Vec2D diff{ sector_centre - boundary.start };
+
+				// normal vector to wall, points "towards" centre of sector disc is currently in
+				Vec2D n{ diff - diff.dot(boundary.tangent) * boundary.tangent };
+
+				// disc is entering current sector or travelling along its boundary, ignore boundary
+				if (e1.new_v.dot(n) >= 0)
+					continue;
+				else
+				{
+					current_best_t = current_boundary_t;
+					best_boundary = boundary_ind;
+				}
 			}
 		}
 	}
@@ -591,19 +594,17 @@ double Sim::test_disc_wall_col(const Disc& d, const Event & e, const Wall & w)
 
 double Sim::test_disc_boundary_col(const Event& e, const Wall& w)
 {
-	double denominator{ w.tangent[0] * e.new_v[1] - w.tangent[1] * e.new_v[0] };
+	// All boundaries are either horizontal or vertical
+	int coord_ind{ w.tangent[0] == 0.0 ? 0 : 1 };
 
-	if (denominator == 0.0)
-	{
+	if (e.new_v[coord_ind] == 0.0)
 		return infinity;
-	}
 
-	Vec2D diff{ e.pos - w.start };
 	double dt;
 
-	dt = (w.tangent[1] * diff[0] - w.tangent[0] * diff[1]) / denominator;
+	dt = (w.start[coord_ind] - e.pos[coord_ind]) / e.new_v[coord_ind];
 
-	// May need to be careful when dt is nearly zero
+	// May need to be careful when ds is nearly zero
 	return dt >= 0.0 ? e.t + dt : infinity;
 }
 
