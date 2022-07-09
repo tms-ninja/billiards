@@ -38,6 +38,10 @@ Sim setup_perf_test()
 			pos = { i + 0.5, j + 0.5 };
 
 			v = { static_cast<double>((i * 17 + j) % 7), static_cast<double>((j * 13 + i) % 11) };
+
+			if (v.mag() == 0.0)
+				v = { 1.0, 0.0 };
+
 			v /= v.mag();
 
 			s.add_disc(pos, v, m, R);
@@ -64,7 +68,7 @@ int main()
 
 	auto begin = std::chrono::steady_clock::now();
 
-	for (size_t i = 0; i < 10; i++)
+	for (size_t i = 0; i < 40; i++)
 	{
 		run_perf_test(s);
 	}
