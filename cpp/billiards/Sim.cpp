@@ -515,12 +515,13 @@ double Sim::solve_quadratic(const Vec2D & alpha, const Vec2D & beta, const doubl
 
 	// coefficients in the quadratic, use algorithm from numerical recipes
 	double a{a2};
-	double b{2.0*a_dot_b};
+	double b{a_dot_b};  // Note in derived formula there is a factor of 2, here it's cancelled out with the 2 in denominator of q
 	double c{b2 - R*R};
 
 	double disc;
 
-	disc = b*b - 4.0*a*c;
+	// Discriminant looks slighly odd as factor fo 4 is cancelled with the 2 in denominator of q
+	disc = b*b - a*c;
 
 	// Discriminant of quardatic is less than zero, no collision
 	if (disc < 0.0)
@@ -528,11 +529,13 @@ double Sim::solve_quadratic(const Vec2D & alpha, const Vec2D & beta, const doubl
 
 	double q;
 
-	q = - (b + std::signbit(b)*std::sqrt(disc))/ 2.0;
+	// No division by two as cancelled with factors in b & discriminant
+	q = - (b + std::signbit(b)*std::sqrt(disc));
 
 	double x1, x2;
 
-	x1 = a != 0.0 ? q/a : infinity;
+	// Note a can't be zero as we have already checked a2 != 0.0
+	x1 = q / a;
 	x2 = c != 0.0 ? c/q : infinity;
 
 	return std::min(x1, x2);
