@@ -23,7 +23,8 @@ enum class Collision_Type
 {
 	Disc_Disc,
 	Disc_Wall,
-	Disc_Boundary
+	Disc_Boundary,
+	Disc_Advancement
 };
 
 class Event
