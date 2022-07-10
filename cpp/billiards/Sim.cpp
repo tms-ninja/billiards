@@ -100,7 +100,11 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 				current_it += 1;
 
 		// Save old state as that is the event that has just been processed
-		if (!initial_setup && record_events && old_event_i.disc_wall_col!=Collision_Type::Disc_Boundary)
+		if (!initial_setup && record_events && 
+			(
+				old_event_i.disc_wall_col == Collision_Type::Disc_Disc ||
+				old_event_i.disc_wall_col == Collision_Type::Disc_Wall)
+			)
 			events.push_back(old_event_i);
 
 		// Minimise over other discs
@@ -163,6 +167,7 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 					Sim::advance(events_vec[m][old_vec[m]], state_m, state_m.t);
 
 					state_m.second_ind = size_t_max;
+					state_m.disc_wall_col = Collision_Type::Disc_Advancement;
 				}
 			}
 		}
