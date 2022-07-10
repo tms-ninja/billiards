@@ -43,7 +43,10 @@ public:
 	// Sectors
 	// Horizontal and vertical number of sectors, this is the true number including 
 	// the "shell" of sectors outside the simulation box
-	const size_t N, M;  
+	const size_t N, M;
+
+	// Width and height of each sector
+	const double sector_width, sector_height;
 
 	// First N+1 horizontal boundaries from left to right, then M+1 vertical bounraries from 
 	// bottom to top
