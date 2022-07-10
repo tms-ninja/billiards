@@ -18,7 +18,7 @@
 
 #include "Sim.h"
 
-Sim::Sim(Vec2D bottom_left, Vec2D top_right, size_t N, size_t M)
+Sim::Sim(Vec2D bottom_left, Vec2D top_right, size_t N, size_t M) 
 	: bottom_left{bottom_left}, top_right{top_right}, N{N+2}, M{M+2},
 	sector_entires((N+2)*(M+2))
 {
@@ -351,14 +351,35 @@ std::pair<size_t, double> Sim::get_next_wall_coll(size_t disc_ind)
 	double current_wall_t;
 	size_t best_wall{ size_t_max };
 
+	// Ignore checking for sectors not adjacent to a wall
+	size_t sector_ID{ initial_state[disc_ind].sector_ID };
+	size_t x{ sector_ID % N }, y{ sector_ID / N };
+
+	if (
+		2 <= x && x <= N-3 &&
+		2 <= y && y <= M-3
+		)
+		return { size_t_max, infinity };
+
+	// which walls we need to check
+	bool check_wall[] = {
+		x == 1,			// Left
+		y == M - 2,		// Right
+		x == N - 2,		// Top
+		y == 1			// Bottom
+	};
+
 	for (size_t wall_ind = 0; wall_ind < walls.size(); ++wall_ind)
 	{
-		current_wall_t = test_disc_wall_col(initial_state[disc_ind], events_vec[disc_ind][old_vec[disc_ind]], walls[wall_ind]);
-
-		if (current_wall_t < current_best_t)
+		if ((walls.size() == 4 && check_wall[wall_ind]) || walls.size() > 4)
 		{
-			current_best_t = current_wall_t;
-			best_wall = wall_ind;
+			current_wall_t = test_disc_wall_col(initial_state[disc_ind], events_vec[disc_ind][old_vec[disc_ind]], walls[wall_ind]);
+
+			if (current_wall_t < current_best_t)
+			{
+				current_best_t = current_wall_t;
+				best_wall = wall_ind;
+			}
 		}
 	}
 
@@ -390,38 +411,41 @@ std::pair<size_t, double> Sim::get_next_boundary_coll(size_t disc_ind)
 
 	for (size_t boundary_ind : boundary_indices)
 	{
-		Wall& boundary{ boundaries[boundary_ind] };
-
-		current_boundary_t = test_disc_boundary_col(events_vec[disc_ind][old_vec[disc_ind]], boundary);
-
 		// Ensure if the previous event was a boundary collision, we ignore the previously interacting boundary
-		if (current_boundary_t < current_best_t && !(e1.disc_wall_col == Collision_Type::Disc_Boundary && e1.second_ind == boundary_ind))
+		if (!(e1.disc_wall_col == Collision_Type::Disc_Boundary && e1.second_ind == boundary_ind))
 		{
-			// Check we haven't already processed the collision and are currently on the boundary
-			// Do this for cases where a disc crosses two boundaries at the same time
-			double left, right, top, bottom;
+			Wall& boundary{ boundaries[boundary_ind] };
 
-			left = bottom_left[0];
-			bottom = bottom_left[1];
-			right = top_right[0];
-			top = top_right[1];
+			current_boundary_t = test_disc_boundary_col(events_vec[disc_ind][old_vec[disc_ind]], boundary);
 
-			double sector_width{ (right - left) / (this->N - 2) }, sector_height{ (top - bottom) / (this->M - 2) };
-			
-			Vec2D sector_centre = bottom_left + Vec2D{ (x - 0.5) * sector_width, (y - 0.5) * sector_height };
-
-			Vec2D diff{ sector_centre - boundary.start };
-
-			// normal vector to wall, points "towards" centre of sector disc is currently in
-			Vec2D n{ diff - diff.dot(boundary.tangent)*boundary.tangent };
-
-			// disc is entering current sector or travelling along its boundary, ignore boundary
-			if (e1.new_v.dot(n) >= 0)
-				continue;
-			else
+			if (current_boundary_t < current_best_t)
 			{
-				current_best_t = current_boundary_t;
-				best_boundary = boundary_ind;
+				// Check we haven't already processed the collision and are currently on the boundary
+				// Do this for cases where a disc crosses two boundaries at the same time
+				double left, right, top, bottom;
+
+				left = bottom_left[0];
+				bottom = bottom_left[1];
+				right = top_right[0];
+				top = top_right[1];
+
+				double sector_width{ (right - left) / (this->N - 2) }, sector_height{ (top - bottom) / (this->M - 2) };
+
+				Vec2D sector_centre{ bottom_left + Vec2D{ (x - 0.5) * sector_width, (y - 0.5) * sector_height } };
+
+				Vec2D diff{ sector_centre - boundary.start };
+
+				// normal vector to wall, points "towards" centre of sector disc is currently in
+				Vec2D n{ diff - diff.dot(boundary.tangent) * boundary.tangent };
+
+				// disc is entering current sector or travelling along its boundary, ignore boundary
+				if (e1.new_v.dot(n) >= 0)
+					continue;
+				else
+				{
+					current_best_t = current_boundary_t;
+					best_boundary = boundary_ind;
+				}
 			}
 		}
 	}
@@ -491,12 +515,13 @@ double Sim::solve_quadratic(const Vec2D & alpha, const Vec2D & beta, const doubl
 
 	// coefficients in the quadratic, use algorithm from numerical recipes
 	double a{a2};
-	double b{2.0*a_dot_b};
+	double b{a_dot_b};  // Note in derived formula there is a factor of 2, here it's cancelled out with the 2 in denominator of q
 	double c{b2 - R*R};
 
 	double disc;
 
-	disc = b*b - 4.0*a*c;
+	// Discriminant looks slighly odd as factor fo 4 is cancelled with the 2 in denominator of q
+	disc = b*b - a*c;
 
 	// Discriminant of quardatic is less than zero, no collision
 	if (disc < 0.0)
@@ -504,11 +529,13 @@ double Sim::solve_quadratic(const Vec2D & alpha, const Vec2D & beta, const doubl
 
 	double q;
 
-	q = - (b + std::signbit(b)*std::sqrt(disc))/ 2.0;
+	// No division by two as cancelled with factors in b & discriminant
+	q = - (b + std::signbit(b)*std::sqrt(disc));
 
 	double x1, x2;
 
-	x1 = a != 0.0 ? q/a : infinity;
+	// Note a can't be zero as we have already checked a2 != 0.0
+	x1 = q / a;
 	x2 = c != 0.0 ? c/q : infinity;
 
 	return std::min(x1, x2);
@@ -570,19 +597,17 @@ double Sim::test_disc_wall_col(const Disc& d, const Event & e, const Wall & w)
 
 double Sim::test_disc_boundary_col(const Event& e, const Wall& w)
 {
-	double denominator{ w.tangent[0] * e.new_v[1] - w.tangent[1] * e.new_v[0] };
+	// All boundaries are either horizontal or vertical
+	int coord_ind{ w.tangent[0] == 0.0 ? 0 : 1 };
 
-	if (denominator == 0.0)
-	{
+	if (e.new_v[coord_ind] == 0.0)
 		return infinity;
-	}
 
-	Vec2D diff{ e.pos - w.start };
 	double dt;
 
-	dt = (w.tangent[1] * diff[0] - w.tangent[0] * diff[1]) / denominator;
+	dt = (w.start[coord_ind] - e.pos[coord_ind]) / e.new_v[coord_ind];
 
-	// May need to be careful when dt is nearly zero
+	// May need to be careful when ds is nearly zero
 	return dt >= 0.0 ? e.t + dt : infinity;
 }
 
