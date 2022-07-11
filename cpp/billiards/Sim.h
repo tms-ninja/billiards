@@ -36,8 +36,8 @@ public:
 	std::vector<Disc> initial_state;
 
 	// bottom left and top right corners of the box the simulation takes place in
-	Vec2D bottom_left;
-	Vec2D top_right;
+	const Vec2D bottom_left;
+	const Vec2D top_right;
 	std::vector<Wall> walls;  // Walls containing the simulation
 
 	// Sectors
