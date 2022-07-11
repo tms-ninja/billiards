@@ -473,6 +473,14 @@ cdef class PySim():
         R : float
             The radius of the disc.
 
+        Raises
+        ------
+        ValueError
+            Raised if 
+                - disc is not within the bounds of the simulation
+                - mass/radius of disc are less than or equal to zero
+                - disc is larger than a sector in the simulation
+
         Returns
         -------
         None.

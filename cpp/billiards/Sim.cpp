@@ -203,6 +203,34 @@ void Sim::setup()
 
 void Sim::add_disc(const Vec2D& pos, const Vec2D& v, double m, double R)
 {
+	// Check disc is within simulation bounds
+	double left, right, top, bottom;
+
+	left = bottom_left[0];
+	bottom = bottom_left[1];
+	right = top_right[0];
+	top = top_right[1];
+
+	if (
+		pos[0]-R < left ||
+		pos[0]+R > right ||
+		pos[1]-R < bottom ||
+		pos[1]+R > top
+	)
+		throw std::invalid_argument("Can't add disc outside the simulation");
+
+	// Check m is greater than zero
+	if (m <= 0.0)
+		throw std::invalid_argument("Can't add disc with mass less than or equal to zero");
+
+	// check R is greater than zero
+	if (R <= 0.0)
+		throw std::invalid_argument("Can't add disc with radius less than or equal to zero");
+
+	// check diameter isn't less than sector size
+	if (2.0 * R >= sector_width || 2.0*R >= sector_height)
+		throw std::invalid_argument("Can't add disc with radius greater than or equal to sector width/height");
+
 	size_t sector_ID{compute_sector_ID(pos)};
 
 	sector_entires.at(sector_ID).push_back(initial_state.size());

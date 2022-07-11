@@ -20,6 +20,7 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <stdexcept>
 #include <tuple>
 #include <vector>
 #include "Vec2D.h"
