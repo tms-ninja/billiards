@@ -20,6 +20,8 @@
 
 Sim::Sim(Vec2D bottom_left, Vec2D top_right, size_t N, size_t M) 
 	: bottom_left{bottom_left}, top_right{top_right}, N{N+2}, M{M+2},
+	sector_width{ (top_right[0] - bottom_left[0]) / N },
+	sector_height{ (top_right[1] - bottom_left[1]) / M },
 	sector_entires((N+2)*(M+2))
 {
 	// Add walls as we have the dimensions of the box
@@ -34,9 +36,6 @@ Sim::Sim(Vec2D bottom_left, Vec2D top_right, size_t N, size_t M)
 	walls.push_back(Wall{ { left,  top },    { right, top } });
 	walls.push_back(Wall{ { right, top },    { right, bottom } });
 	walls.push_back(Wall{ { right, bottom }, { left,  bottom } });
-
-	// Setup up boundaries for sectoring
-	double sector_width{ (right - left) / (this->N - 2) }, sector_height{ (top - bottom) / (this->M - 2) };
 
 	// Add horizontal boundaires first, then vertical
 	for (int i = 0; i <= this->N; i++)
@@ -427,15 +426,6 @@ std::pair<size_t, double> Sim::get_next_boundary_coll(size_t disc_ind)
 			{
 				// Check we haven't already processed the collision and are currently on the boundary
 				// Do this for cases where a disc crosses two boundaries at the same time
-				double left, right, top, bottom;
-
-				left = bottom_left[0];
-				bottom = bottom_left[1];
-				right = top_right[0];
-				top = top_right[1];
-
-				double sector_width{ (right - left) / (this->N - 2) }, sector_height{ (top - bottom) / (this->M - 2) };
-
 				Vec2D sector_centre{ bottom_left + Vec2D{ (x - 0.5) * sector_width, (y - 0.5) * sector_height } };
 
 				Vec2D diff{ sector_centre - boundary.start };
@@ -645,14 +635,10 @@ void Sim::advance(const Event &old_e, Event &new_e, double t)
 
 size_t Sim::compute_sector_ID(const Vec2D& pos)
 {
-	double left, right, top, bottom;
+	double left, bottom;
 
 	left = bottom_left[0];
 	bottom = bottom_left[1];
-	right = top_right[0];
-	top = top_right[1];
-
-	double sector_width{ (right - left) / (N-2) }, sector_height{ (top - bottom) / (M-2) };
 
 	size_t x_ind, y_ind;
 
