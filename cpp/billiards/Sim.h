@@ -47,14 +47,8 @@ public:
 
 	// Width and height of each sector
 	const double sector_width, sector_height;
-
-	// First N+1 horizontal boundaries from left to right, then M+1 vertical bounraries from 
-	// bottom to top
-	std::vector<Wall> boundaries;
-
-	// Keeps track of which balls are in which sector
-	std::vector<std::vector<size_t>> sector_entires;
 	
+	// Contains the events that occured during the simulation
 	std::vector<Event> events;
 
 	std::vector<size_t> new_vec, old_vec;
@@ -77,6 +71,13 @@ public:
 	void add_disc(const Vec2D& pos, const Vec2D& v, double m, double R);
 
 private:
+
+	// First N+1 horizontal boundaries from left to right, then M+1 vertical bounraries from 
+	// bottom to top
+	std::vector<Wall> boundaries;
+
+	// Keeps track of which balls are in which sector
+	std::vector<std::vector<size_t>> sector_entires;
 
 
 	// Binary heap that minimises time[disc_ind, new[disc_ind]], so 
