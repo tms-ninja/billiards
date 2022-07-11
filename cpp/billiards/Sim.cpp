@@ -24,6 +24,12 @@ Sim::Sim(Vec2D bottom_left, Vec2D top_right, size_t N, size_t M)
 	sector_height{ (top_right[1] - bottom_left[1]) / M },
 	sector_entires((N+2)*(M+2))
 {
+	// Validate number of sectors to be used
+	if (N < 1)
+		throw std::invalid_argument("Number of sectors in x direction must be at least 1");
+	else if (M < 1)
+		throw std::invalid_argument("Number of sectors in y direction must be at least 1");
+
 	// Add walls as we have the dimensions of the box
 	double left, right, top, bottom;
 
@@ -31,6 +37,11 @@ Sim::Sim(Vec2D bottom_left, Vec2D top_right, size_t N, size_t M)
 	bottom = bottom_left[1];
 	right = top_right[0];
 	top = top_right[1];
+
+	if (right <= left)
+		throw std::invalid_argument("Top-right corner of simulation box cannot be to the left of bottom-left corner");
+	else if (top <= bottom)
+		throw std::invalid_argument("Top-right corner of simulation box cannot be below bottom-left corner");
 
 	walls.push_back(Wall{ { left,  bottom }, { left,  top } });
 	walls.push_back(Wall{ { left,  top },    { right, top } });

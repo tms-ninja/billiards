@@ -614,6 +614,59 @@ class Test_PySim(unittest.TestCase):
         with self.assertRaises(ValueError) as _:
             s.add_disc(pos, v, m, 0.6)
 
+    def test_reject_invalid_bounds(self):
+        """
+        Tests constructor for PySim rejects attempting to create a simulation 
+        with invalid bounds, e.g. left bound is greater than or equal to right
+        Expected that it raises a ValueError
+        """
 
+        L = 10.0  # Width/height of simulation box
 
+        # First check right can't be less than left
+        with self.assertRaises(ValueError) as _:
+            bottom_left = [0.0, 0.0]
+            top_right = [-L, L]
+
+            s = bl.PySim(bottom_left, top_right, 10, 1)
+
+        # Left can't be equal to right
+        with self.assertRaises(ValueError) as _:
+            bottom_left = [0.0, 0.0]
+            top_right = [0.0, L]
+
+            s = bl.PySim(bottom_left, top_right, 10, 1)
+
+        # Bottom can't be greater than top
+        with self.assertRaises(ValueError) as _:
+            bottom_left = [0.0, 2*L]
+            top_right = [L, L]
+
+            s = bl.PySim(bottom_left, top_right, 10, 1)
+        
+        # Bottom can't be equal to top
+        with self.assertRaises(ValueError) as _:
+            bottom_left = [0.0, L]
+            top_right = [L, L]
+
+            s = bl.PySim(bottom_left, top_right, 10, 1)
+
+    def test_reject_invalid_number_of_sectors(self):
+        """
+        Tests constructor for PySim rejects attempting to create a simulation 
+        with invalid number of sectors, i.e. zero
+        Expected that it raises a ValueError
+        """
+
+        L = 10.0  # Width/height of simulation box
+
+        bottom_left = [0.0, 0.0]
+        top_right = [L, L]
+
+        # First check 0 sectors in x direction is not allowed
+        with self.assertRaises(ValueError) as _:
+            s = bl.PySim(bottom_left, top_right, 0, 1)
+
+        with self.assertRaises(ValueError) as _:
+            s = bl.PySim(bottom_left, top_right, 1, 0)
 

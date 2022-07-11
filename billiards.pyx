@@ -308,10 +308,19 @@ cdef class PySim():
             2.
         N : int
             Number of sectors the simulation box is split into in the horizontal
-            direction. This only sectors within the simulation box boundaries.
+            direction. This only includes sectors within the simulation box 
+            boundaries.
         M : int
             Number of sectors the simulation box is split into in the vertical
-            direction. This only sectors within the simulation box boundaries.
+            direction. This only includes sectors within the simulation box
+            boundaries.
+
+        Raises
+        ------
+        ValueError
+            Raised if the top-right corner isn't above and to the right of the 
+            bottom-left corner or the number of sectors in either direction is
+            zero.
 
         Returns
         -------
