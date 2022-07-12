@@ -486,4 +486,187 @@ class Test_PySim(unittest.TestCase):
         assert_array_equal(bounds[0], bottom_left)
         assert_array_equal(bounds[1], top_right)
 
+    def test_reject_adding_disc_outside_sim(self):
+        """
+        Tests add_disc() rejects attempting to add a disc outside the simulation
+        Expected that it raises a ValueError
+        """
+
+        L = 10.0  # Width/height of simulation box
+
+        bottom_left = [0.0, 0.0]
+        top_right = [L, L]
+
+        s = bl.PySim(bottom_left, top_right)
+
+        v = [0.0, 0.0]
+        m = 1.0
+        R = 1.0
+
+        # Test both a disc partially and fully outside the simulation
+        # Left 
+        with self.assertRaises(ValueError) as _:
+            s.add_disc([R / 2, L / 2], v, m, R)
         
+        with self.assertRaises(ValueError) as _:
+            s.add_disc([-L, L / 2], v, m, R)
+
+        # Right
+        with self.assertRaises(ValueError) as _:
+            s.add_disc([L - R / 2, L / 2], v, m, R)
+        
+        with self.assertRaises(ValueError) as _:
+            s.add_disc([2 * L, L / 2], v, m, R)
+
+        # Bottom
+        with self.assertRaises(ValueError) as _:
+            s.add_disc([L / 2, R / 2], v, m, R)
+        
+        with self.assertRaises(ValueError) as _:
+            s.add_disc([L / 2, -L], v, m, R)
+
+        # Top
+        with self.assertRaises(ValueError) as _:
+            s.add_disc([L / 2, L - R / 2], v, m, R)
+        
+        with self.assertRaises(ValueError) as _:
+            s.add_disc([L / 2, 2 * L], v, m, R)
+
+    def test_reject_adding_negative_mass_disc(self):
+        """
+        Tests add_disc() rejects attempting to add a disc with mass less than 
+        or equal to 0
+        Expected that it raises a ValueError
+        """
+
+        L = 10.0  # Width/height of simulation box
+
+        bottom_left = [0.0, 0.0]
+        top_right = [L, L]
+
+        s = bl.PySim(bottom_left, top_right)
+
+        pos = [L/2, L/2]
+        v = [0.0, 0.0]
+        m = 1.0
+        R = 1.0
+
+        # Ensure it can't equal zero
+        with self.assertRaises(ValueError) as _:
+            s.add_disc(pos, v, 0.0, R)
+
+        # Ensure it can't be less than zero
+        with self.assertRaises(ValueError) as _:
+            s.add_disc(pos, v, -1.0, R)
+    
+    def test_reject_adding_negative_radius_disc(self):
+        """
+        Tests add_disc() rejects attempting to add a disc with radius less than 
+        or equal to 0
+        Expected that it raises a ValueError
+        """
+
+        L = 10.0  # Width/height of simulation box
+
+        bottom_left = [0.0, 0.0]
+        top_right = [L, L]
+
+        s = bl.PySim(bottom_left, top_right)
+
+        pos = [L/2, L/2]
+        v = [0.0, 0.0]
+        m = 1.0
+
+        # Ensure it can't equal zero
+        with self.assertRaises(ValueError) as _:
+            s.add_disc(pos, v, m, 0.0)
+
+        # Ensure it can't be less than zero
+        with self.assertRaises(ValueError) as _:
+            s.add_disc(pos, v, m, -1.0)
+
+    def test_reject_adding_disc_larger_than_sector_size(self):
+        """
+        Tests add_disc() rejects attempting to add a disc with diameter larger 
+        than the width/height of sectors
+        Expected that it raises a ValueError
+        """
+
+        L = 10.0  # Width/height of simulation box
+
+        bottom_left = [0.0, 0.0]
+        top_right = [L, L]
+
+        # Disc properties
+        pos = [L/2, L/2]
+        v = [0.0, 0.0]
+        m = 1.0
+
+        # First check x direction, sector width is 1.0 so R should be <= 0.5
+        s = bl.PySim(bottom_left, top_right, 10, 1)
+
+        with self.assertRaises(ValueError) as _:
+            s.add_disc(pos, v, m, 0.6)
+
+        # Now test vertical direction
+        s = bl.PySim(bottom_left, top_right, 1, 10)
+
+        with self.assertRaises(ValueError) as _:
+            s.add_disc(pos, v, m, 0.6)
+
+    def test_reject_invalid_bounds(self):
+        """
+        Tests constructor for PySim rejects attempting to create a simulation 
+        with invalid bounds, e.g. left bound is greater than or equal to right
+        Expected that it raises a ValueError
+        """
+
+        L = 10.0  # Width/height of simulation box
+
+        # First check right can't be less than left
+        with self.assertRaises(ValueError) as _:
+            bottom_left = [0.0, 0.0]
+            top_right = [-L, L]
+
+            s = bl.PySim(bottom_left, top_right, 10, 1)
+
+        # Left can't be equal to right
+        with self.assertRaises(ValueError) as _:
+            bottom_left = [0.0, 0.0]
+            top_right = [0.0, L]
+
+            s = bl.PySim(bottom_left, top_right, 10, 1)
+
+        # Bottom can't be greater than top
+        with self.assertRaises(ValueError) as _:
+            bottom_left = [0.0, 2*L]
+            top_right = [L, L]
+
+            s = bl.PySim(bottom_left, top_right, 10, 1)
+        
+        # Bottom can't be equal to top
+        with self.assertRaises(ValueError) as _:
+            bottom_left = [0.0, L]
+            top_right = [L, L]
+
+            s = bl.PySim(bottom_left, top_right, 10, 1)
+
+    def test_reject_invalid_number_of_sectors(self):
+        """
+        Tests constructor for PySim rejects attempting to create a simulation 
+        with invalid number of sectors, i.e. zero
+        Expected that it raises a ValueError
+        """
+
+        L = 10.0  # Width/height of simulation box
+
+        bottom_left = [0.0, 0.0]
+        top_right = [L, L]
+
+        # First check 0 sectors in x direction is not allowed
+        with self.assertRaises(ValueError) as _:
+            s = bl.PySim(bottom_left, top_right, 0, 1)
+
+        with self.assertRaises(ValueError) as _:
+            s = bl.PySim(bottom_left, top_right, 1, 0)
+

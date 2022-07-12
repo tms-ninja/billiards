@@ -108,5 +108,5 @@ cdef extern from "Sim.h":
 
         void advance(size_t, double, bool)
         void setup()
-        void add_disc(Vec2D pos, Vec2D v, double m, double R)
+        void add_disc(Vec2D pos, Vec2D v, double m, double R) except+
     
