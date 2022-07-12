@@ -49,14 +49,14 @@ Sim::Sim(Vec2D bottom_left, Vec2D top_right, size_t N, size_t M)
 	walls.push_back(Wall{ { right, bottom }, { left,  bottom } });
 
 	// Add horizontal boundaires first, then vertical
-	for (int i = 0; i <= this->N; i++)
+	for (size_t i = 0; i <= this->N; i++)
 	{
 		double x_pos{ left + (i-1) * sector_width };
 
 		boundaries.push_back(Wall{ {x_pos, top + sector_height }, {x_pos, bottom - sector_height} });
 	}
 
-	for (int i = 0; i <= this->M; i++)
+	for (size_t i = 0; i <= this->M; i++)
 	{
 		double y_pos{ bottom + (i-1) * sector_height };
 
@@ -104,10 +104,12 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 		// We count disc-disc as one collision so we count disc-wall as 2 to avoid double counting
 		// disc-disc collisions 
 		if (!initial_setup)
+		{
 			if (old_event_i.disc_wall_col==Collision_Type::Disc_Wall)
 				current_it += 2;
 			else if (old_event_i.disc_wall_col == Collision_Type::Disc_Disc)
 				current_it += 1;
+		}	
 
 		// Save old state as that is the event that has just been processed
 		if (!initial_setup && record_events && 
