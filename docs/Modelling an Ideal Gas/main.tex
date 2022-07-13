@@ -130,6 +130,15 @@ All collisions are currently considered to be elastic. When a particle hit a wal
 \end{align}
 We may need to be careful to ensure the magnitude of $\vec{v}$ is unchanged.
 
+\subsection{Disc-boundary collisions}
+Boundaries are used to split the simulation area into sectors in order to improve efficiency. They are straight lines and described in the same manner as walls. However, a disc-boundary collision occurs when the centre of a disc intersects with the boundary. A disc will collide with a boundary at time,
+\begin{equation}
+    t
+    =
+    \frac{\gamma_x (r_{0y} - A_y) - \gamma_y (r_{0x} - A_x)}{v_x \gamma_y - v_y \gamma_x}.
+\end{equation}
+$t$ must be positive for a collision to occur. Since the boundary endpoints are placed outside the simulation bounds, there is no need to ensure $0 \leq s \leq 1$. We may need to be careful if a disc is travelling along a sector boundary.
+
 \subsubsection{Collisions between discs}
 We consider collisions between two discs of masses $m_1$, $m_2$ and radii $R_1$, $R_2$ respectively. Initially we consider elastic collisions and suppose the discs do not rotate. Denoting the position of each particle as $\vec{r}_1(t)$ and $\vec{r}_2(t)$, a collision occurs when,
 \begin{equation}
@@ -294,6 +303,9 @@ A more efficient approach is described in \cite{Lubachevsky-1991}. Roughly, for 
     \item If the next collision is disc-disc, appropriately scheduling the partner's new collision
 \end{itemize}
 The main computational effort is spent in determining the next collision and the next scheduled event. Determining the next time can be found in $\mathcal{O}(\log N)$ using a heap as suggested in \cite{Lubachevsky-1991}, whereas determining the next collision can be improved partitioning space into sectors.
+
+\subsection{Dividing the space into sectors}
+In this method, the space the particles occupy is split into sectors, each of which should be large enough to fully contain the disc. Only the sector the disc is currently in and those adjacent to it (8 if using squares) need to be checked to determine the next possible disc-disc collision. Similarly, only sectors adjacent to a wall need to check for disc-wall interactions.
 
 % Bibliography
 \bibliographystyle{ieeetr}
