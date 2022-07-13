@@ -17,6 +17,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # distutils: language = c++
+import enum
+
 from cython_header cimport *
 
 import numpy as np
@@ -123,6 +125,15 @@ cdef _get_state_R(vector[Disc]& state):
 
 # class PyEvent
 
+# Wrapping for C++ Collision_Type
+class PyCol_Type(enum.Enum):
+    """Enum to describe the type of event that occured, e.g. disc-disc collision"""
+    Disc_Disc = 0
+    Disc_Wall = 1
+    Disc_Boundary = 2
+    Disc_Advancement = 3
+
+
 cdef class PyEvent():
     """Represents a collision event of a disc"""
 
@@ -226,15 +237,23 @@ cdef class PyEvent():
 
         Returns
         -------
-        bool
-            Returns True if the secondary object was a wall, False if was 
-            anopther disc.
+        PyCol_Type
+            Returns an instance of PyCol_Type describing the nature of the 
+            collision
             
         """
 
         cdef Collision_Type col_type = self._sim.s.events[self._e_ind].disc_wall_col
 
-        return <int>col_type
+        if col_type==Disc_Disc:
+            return PyCol_Type.Disc_Disc
+        elif col_type==Disc_Wall:
+            return PyCol_Type.Disc_Wall
+        elif col_type==Disc_Boundary:
+            return PyCol_Type.Disc_Boundary
+        else:
+            return PyCol_Type.Disc_Advancement
+
 
     @property
     def pos(self):

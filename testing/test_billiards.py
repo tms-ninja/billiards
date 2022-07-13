@@ -74,7 +74,7 @@ class Test_PySim(unittest.TestCase):
         self.assertAlmostEqual(ev.t, 2.0)
         self.assertEqual(ev.ind, 0)
         self.assertEqual(ev.second_ind, 0)
-        self.assertEqual(ev.disc_wall_col, True)
+        self.assertEqual(ev.disc_wall_col, bl.PyCol_Type.Disc_Wall)
         assert_allclose(ev.pos, expected_pos)
         assert_allclose(ev.new_v, expected_v)
 
@@ -97,7 +97,7 @@ class Test_PySim(unittest.TestCase):
         self.assertAlmostEqual(ev.t, 2.0)
         self.assertEqual(ev.ind, 0)
         self.assertEqual(ev.second_ind, 1)
-        self.assertEqual(ev.disc_wall_col, True)
+        self.assertEqual(ev.disc_wall_col, bl.PyCol_Type.Disc_Wall)
         assert_allclose(ev.pos, expected_pos)
         assert_allclose(ev.new_v, expected_v)
 
@@ -121,7 +121,7 @@ class Test_PySim(unittest.TestCase):
         self.assertAlmostEqual(ev.t, 3.0 - 1 / np.sin(np.pi/4))
         self.assertEqual(ev.ind, 0)
         self.assertEqual(ev.second_ind, 4)
-        self.assertEqual(ev.disc_wall_col, True)
+        self.assertEqual(ev.disc_wall_col, bl.PyCol_Type.Disc_Wall)
         assert_allclose(ev.pos, expected_pos)
         assert_allclose(ev.new_v, expected_v, atol=1e-15)
 
@@ -146,7 +146,7 @@ class Test_PySim(unittest.TestCase):
                 't': 4.0,
                 'ind': 0,
                 'second_ind': 1,
-                'disc_wall_col': False,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
                 'pos': np.array([3.0, 4.0]),
                 'new_v': np.array([0.0, -1.0]),
             },
@@ -154,7 +154,7 @@ class Test_PySim(unittest.TestCase):
                 't': 4.0,
                 'ind': 1,
                 'second_ind': 0,
-                'disc_wall_col': False,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
                 'pos': np.array([3.0, 6.0]),
                 'new_v': np.array([0.0, 1.0]),
             }
@@ -189,7 +189,7 @@ class Test_PySim(unittest.TestCase):
                 't': 4.0,
                 'ind': 0,
                 'second_ind': 1,
-                'disc_wall_col': False,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
                 'pos': np.array([4.0, 0.0]),
                 'new_v': np.array([-1.0, 0.0]),
             },
@@ -197,7 +197,7 @@ class Test_PySim(unittest.TestCase):
                 't': 4.0,
                 'ind': 1,
                 'second_ind': 0,
-                'disc_wall_col': False,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
                 'pos': np.array([6.0, 0.0]),
                 'new_v': np.array([1.0, 0.0]),
             }
@@ -235,7 +235,7 @@ class Test_PySim(unittest.TestCase):
                 't': 5 - np.sqrt(2)/2,
                 'ind': 0,
                 'second_ind': 1,
-                'disc_wall_col': False,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
                 'pos': np.array([5 - np.sqrt(2)/2, 0.0]),
                 'new_v': np.array([0.0, -1.0]),
             },
@@ -243,7 +243,7 @@ class Test_PySim(unittest.TestCase):
                 't': 5 - np.sqrt(2)/2,
                 'ind': 1,
                 'second_ind': 0,
-                'disc_wall_col': False,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
                 'pos': np.array([5 + np.sqrt(2)/2, np.sqrt(2)]),
                 'new_v': np.array([0.0, 1.0]),
             }
@@ -278,7 +278,7 @@ class Test_PySim(unittest.TestCase):
                 't': 1.6,
                 'ind': 0,
                 'second_ind': 1,
-                'disc_wall_col': False,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
                 'pos': np.array([3.2, 0.0]),
                 'new_v': np.array([-3.0, 0.0]),
             },
@@ -286,7 +286,7 @@ class Test_PySim(unittest.TestCase):
                 't': 1.6,
                 'ind': 1,
                 'second_ind': 0,
-                'disc_wall_col': False,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
                 'pos': np.array([5.2, 0.0]),
                 'new_v': np.array([2.0, 0.0]),
             }
@@ -321,7 +321,7 @@ class Test_PySim(unittest.TestCase):
                 't': 4.0,
                 'ind': 0,
                 'second_ind': 1,
-                'disc_wall_col': False,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
                 'pos': np.array([4.0, 0.0]),
                 'new_v': np.array([-1.4, 0.0]),
             },
@@ -329,7 +329,7 @@ class Test_PySim(unittest.TestCase):
                 't': 4.0,
                 'ind': 1,
                 'second_ind': 0,
-                'disc_wall_col': False,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
                 'pos': np.array([6.0, 0.0]),
                 'new_v': np.array([0.6, 0.0]),
             }
@@ -364,7 +364,7 @@ class Test_PySim(unittest.TestCase):
                 't': 2.5,
                 'ind': 0,
                 'second_ind': 1,
-                'disc_wall_col': False,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
                 'pos': np.array([2.5, 0.0]),
                 'new_v': np.array([-1.0, 0.0]),
             },
@@ -372,7 +372,7 @@ class Test_PySim(unittest.TestCase):
                 't': 2.5,
                 'ind': 1,
                 'second_ind': 0,
-                'disc_wall_col': False,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
                 'pos': np.array([7.5, 0.0]),
                 'new_v': np.array([1.0, 0.0]),
             }
