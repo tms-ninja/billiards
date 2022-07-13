@@ -60,13 +60,14 @@ cdef extern from "Event.cpp":
     pass
 
 cdef extern from "Event.h":
-    cdef cppclass Collision_Type:
+    cdef enum Collision_Type:
         pass
 
 cdef extern from "Event.h" namespace "Collision_Type":
     cdef Collision_Type Disc_Disc
     cdef Collision_Type Disc_Wall
     cdef Collision_Type Disc_Boundary
+    cdef Collision_Type Disc_Advancement
 
 cdef extern from "Event.h":
     cdef cppclass Event:
