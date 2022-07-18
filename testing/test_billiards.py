@@ -740,6 +740,36 @@ class Test_PySim(unittest.TestCase):
 
             self.assertTrue(np.all(dist >= 2*R))
 
+    def test_add_random_discs_temperature(self):
+        """Tests that discs added do have the requested temperature"""
+
+        N_discs = 10_000
+        L = 1000.0  # Width/height of simulation box
+
+        bottom_left = np.array([0.0, 0.0])
+        top_right = np.array([L, L])
+
+        # Masses & radii of disc
+        m = 1.0
+        R = 1.0
+        kB_T = 1.0
+
+        # First check the random method
+        s = bl.PySim(bottom_left, top_right, 1, 1)
+
+        s.add_random_discs(bottom_left, top_right, N_discs, m, R, kB_T=kB_T, pos_allocation='grid')
+
+        # As a simple test, test the mean is about right
+        # Mean should be sqrt(pi*kB*T/(2*m))
+
+        speeds = np.linalg.norm(s.initial_state['v'], axis=1)
+
+        speeds_mean = np.mean(speeds)
+        expected_mean = np.sqrt(np.pi*kB_T/(2*m))
+
+        assert_allclose(speeds_mean, expected_mean, atol=0.2)
+
+
 
 
 

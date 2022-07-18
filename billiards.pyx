@@ -616,7 +616,7 @@ cdef class PySim():
 
             scale = np.sqrt(kB_T / unique_masses[0])
 
-            speeds = scipy.stats.chi(2, loc=0, scale=scale, size=N_discs)
+            speeds = scipy.stats.chi.rvs(2, loc=0, scale=scale, size=N_discs)
 
             velocity[N_current_state:, 0] = speeds*np.cos(angle)
             velocity[N_current_state:, 1] = speeds*np.sin(angle)
