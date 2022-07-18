@@ -18,11 +18,14 @@
 
 # distutils: language = c++
 import enum
+import math
 
 from cython_header cimport *
 
 import numpy as np
 cimport numpy as np
+
+import scipy.stats
 
 cdef _get_state_pos(vector[Disc]& state):
     """
@@ -520,7 +523,8 @@ cdef class PySim():
 
         self.s.add_disc(v_r, v_v, m, R)
 
-    def add_random_discs(self, bottom_left, top_right, N_discs, v, m, R):
+    def add_random_discs(self, bottom_left, top_right, N_discs, m, R, v=None, kB_T=None,
+                         pos_allocation='random'):
         """
         Adds N_discs discs with random positions and velocity directions in a 
         box defined by its bottom left and top right corners. Discs will be 
@@ -534,15 +538,30 @@ cdef class PySim():
             The top right corner of the box, expected to have shape (2,).
         N_discs : int
             The number of discs that will be added.
-        v : float or numpy.ndarray
-            The speed added discs will have. If a numpy array is passed, it 
-            should have shape (N_discs,).
         m : float or numpy.ndarray
             The mass added discs will have. If a numpy array is passed, it 
             should have shape (N_discs,).
         R : float or numpy.ndarray
             The radius added discs will have. If a numpy array is passed, it 
             should have shape (N_discs,).
+        v : float, numpy.ndarray or None, optional
+            The speed added discs will have. If a numpy array is passed, it 
+            should have shape (N_discs,). If it is None, kB_T should be specified.
+            The default is None.
+        kB_T : float or None, optional
+            The temperature added discs will have, drawn from a 2d 
+            Maxwell-Boltzmann distribution. If it is None, v should be specified.
+            The default is None.
+        pos_allocation : str, optional
+            The method used to allocate the positions of the discs. If 'random'
+            is used, add_random_discs() tries to select a random position 
+            within the box up to 10 times to prevent overlapping. If it fails 
+            after 10 attempts, add_random_discs() fails. If 'grid' is selected,
+            discs will be randomly allocated a place on a square grid. A 
+            maximum of 10 attempts will be made before add_random_discs() 
+            fails. Note the grid is square with respect to the number of discs 
+            in the x/y directions, not the physical extent. The default is 
+            'random'.
 
         Returns
         -------
@@ -551,7 +570,9 @@ cdef class PySim():
         Raises
         ------
         RuntimeError
-            Raised if it failed to place a disc after 10 attempts. No new discs
+            Raised if it failed to place a disc after 10 attempts using 
+            'random' position allocation or failed to allocate using 'grid' 
+            allocation witout overlapping discs after 10 attempts. No new discs
             are added to the simulation if this is raised.
         
         """
@@ -570,42 +591,125 @@ cdef class PySim():
         radius[:N_current_state] = current_state['R']
         radius[N_current_state:] = R
 
+        # Now set about generating velocities of discs
+        if v is None and kB_T is None:
+            raise ValueError("One of v or kB_T must be specified, both were None")
+        elif v is not None and kB_T is not None:
+            raise ValueError(f"Only one of v and T can be specified. v was: {v}, kB_T was: {kB_T}")
+
         velocity = np.empty((N_current_state + N_discs, 2), dtype=np.float64)
         angle = 2*np.pi*np.random.random(N_discs)
-
         velocity[:N_current_state] = current_state['v']
-        velocity[N_current_state:, 0] = v*np.cos(angle)
-        velocity[N_current_state:, 1] = v*np.sin(angle)
+
+        # All new discs either have the passed speed(s) 
+        if v is not None:
+            velocity[N_current_state:, 0] = v*np.cos(angle)
+            velocity[N_current_state:, 1] = v*np.sin(angle)
+        else:
+            # Need to draw from a 2d Maxwell-Boltzmann distribution
+            # need to be careful if not all discs have the same mass, initially 
+            # we'll reject this possibility
+            unique_masses = np.unique(m)
+
+            if unique_masses.shape[0]!=1:
+                raise ValueError("Currently, all particles must have the same mass if kB_T is defined")
+
+            scale = np.sqrt(kB_T / unique_masses[0])
+
+            speeds = scipy.stats.chi(2, loc=0, scale=scale, size=N_discs)
+
+            velocity[N_current_state:, 0] = speeds*np.cos(angle)
+            velocity[N_current_state:, 1] = speeds*np.sin(angle)
 
         # Disc centres must be in a smaller box so they don't intersect the
         # walls
-        bottom_left = bottom_left + R
-        top_right = top_right - R
-
         pos = np.empty((N_current_state + N_discs, 2), dtype=np.float64)
         pos[:N_current_state] = current_state['r']
 
-        for d_ind in range(N_current_state, N_current_state + N_discs):
-            attempt = 10
+        if pos_allocation=='random':
+            _bottom_left = bottom_left + R
+            _top_right = top_right - R
 
-            while attempt > 0:
-                d_pos = bottom_left + (top_right - bottom_left) * np.random.random(2)
+            for d_ind in range(N_current_state, N_current_state + N_discs):
+                attempt = 10
 
-                disc_is_colliding = False
+                while attempt > 0:
+                    d_pos = _bottom_left + (_top_right - _bottom_left) * np.random.random(2)
 
-                # Test for collisions
-                for i in range(0, d_ind):
-                    if np.linalg.norm(d_pos - pos[i]) < radius[d_ind] + radius[i]:
-                        disc_is_colliding = True
-                        break
+                    disc_is_colliding = False
+
+                    # Test for collisions
+                    for i in range(0, d_ind):
+                        if np.linalg.norm(d_pos - pos[i]) < radius[d_ind] + radius[i]:
+                            disc_is_colliding = True
+                            break
+                    else:
+                        pos[d_ind] = d_pos
+                        break  # New disc has no collisions
+
+                    # Disc does have a collision, try again
+                    attempt -= 1
                 else:
-                    pos[d_ind] = d_pos
-                    break  # New disc has no collisions
+                    raise RuntimeError(f"Unable to place disc {d_ind - N_current_state} after 10 attempts.")
+        elif pos_allocation=='grid':
+            # Small margin so discs won't be touching bounds of rquested box
+            _bottom_left = bottom_left + R*1.001
+            _top_right = top_right - R*1.001
+            
+            # require n_per_side**2 >= N _discs
+            n_per_side = 1 + math.isqrt(N_discs-1)
 
-                # Disc does have a collision, try again
-                attempt -= 1
+            x_pos = np.linspace(_bottom_left[0], _top_right[0], n_per_side)
+            y_pos = np.linspace(_bottom_left[1], _top_right[1], n_per_side)
+
+            xx, yy = np.meshgrid(x_pos, y_pos)
+
+            # In general we expect n_per_side**2 > N_discs, so we randomly 
+            # choose which positions on the grid to use
+            possible_positions = np.column_stack((xx.ravel(), yy.ravel()))
+
+            attempt = 0
+            max_attempt = 10
+
+            while attempt < max_attempt:
+                # select the positions for this attempt
+                selected_indices = np.random.choice(possible_positions.shape[0], N_discs, replace=False)
+                pos[N_current_state:] = possible_positions[selected_indices]
+
+                overlapping_discs = False
+
+                # Now check there aren't any discs overlapping
+                if n_per_side > 1:
+                    dx, dy = x_pos[1] - x_pos[0], y_pos[1] - y_pos[0]
+
+                    max_R = np.max(radius)
+
+                    if dx > 2*max_R and dy > 2*max_R and N_current_state==0:
+                        # Guaranteed there are no overlapping discs
+                        break
+                    else:
+                        for d_ind in range(N_current_state, N_current_state + N_discs):
+                            d_pos = pos[d_ind]
+
+                            # Test for collisions
+                            for partner_ind in range(0, d_ind):
+                                if np.linalg.norm(d_pos - pos[partner_ind]) < radius[d_ind] + radius[partner_ind]:
+                                    overlapping_discs = True
+                                    break
+
+                            if overlapping_discs:
+                                break
+
+                # we've allocated positions to all discs without any overlapping
+                if not overlapping_discs:
+                    break
+
+                attempt += 1
             else:
-                raise RuntimeError(f"Unable to place disc {d_ind - N_current_state} after 10 attempts.")
+                raise RuntimeError(f"Unable to place discs on grid after {max_attempt} attempts")
+                                
+        else:
+            raise ValueError(f"Unknown pos_allocation: {pos_allocation}. Allowed values are 'random' or 'grid'.")
 
         # Now add the discs to the simulation
         for ind in range(N_current_state, N_current_state + N_discs):

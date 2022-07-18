@@ -43,7 +43,7 @@ def create_20_disc_sim(n_sector_x, n_sector_y):
     s = bl.PySim(box_bottom_left, box_top_right, n_sector_x, n_sector_y)
 
     #s.add_box_walls(box_bottom_left, box_top_right)
-    s.add_random_discs(np.array(box_bottom_left), np.array(box_top_right), 20, 5.0, 1.0, 1.0)
+    s.add_random_discs(np.array(box_bottom_left), np.array(box_top_right), 20, 1.0, 1.0, v=5.0)
 
     s.setup()
 
@@ -669,4 +669,77 @@ class Test_PySim(unittest.TestCase):
 
         with self.assertRaises(ValueError) as _:
             s = bl.PySim(bottom_left, top_right, 1, 0)
+
+    def test_add_random_discs_bounds(self):
+        """Tests that discs added are within the specified bounds"""
+
+        L = 400.0  # Width/height of simulation box
+
+        bottom_left = np.array([0.0, 0.0])
+        top_right = np.array([L, L])
+
+        # Masses & radii of disc
+        m = 1.0
+        R = 1.0
+
+        # First check the random method
+        s = bl.PySim(bottom_left, top_right, 1, 1)
+
+        s.add_random_discs(bottom_left, top_right, 1_000, m, R, v=1.0, pos_allocation='random')
+
+        pos = s.initial_state['r']
+
+        self.assertTrue(all(bottom_left <= np.min(pos, axis=0)))
+        self.assertTrue(all(np.max(pos, axis=0) <= top_right ))
+
+        # Now check grid method of new PySim instance
+        s = bl.PySim(bottom_left, top_right, 1, 1)
+
+        s.add_random_discs(bottom_left, top_right, 1_000, m, R, v=1.0, pos_allocation='grid')
+
+        pos = s.initial_state['r']
+
+        self.assertTrue(all(bottom_left <= np.min(pos, axis=0)))
+        self.assertTrue(all(np.max(pos, axis=0) <= top_right ))
+    
+    def test_add_random_discs_overlapping(self):
+        """Tests that discs added are with no overlapping"""
+
+        N_discs = 1_000
+        L = 400.0  # Width/height of simulation box
+
+        bottom_left = np.array([0.0, 0.0])
+        top_right = np.array([L, L])
+
+        # Masses & radii of disc
+        m = 1.0
+        R = 1.0
+
+        # First check the random method
+        s = bl.PySim(bottom_left, top_right, 1, 1)
+
+        s.add_random_discs(bottom_left, top_right, N_discs, m, R, v=1.0, pos_allocation='random')
+
+        pos = s.initial_state['r']
+
+        for disc_ind in range(1, N_discs):
+            dist = np.linalg.norm(pos[:disc_ind] - pos[disc_ind])
+
+            self.assertTrue(np.all(dist >= 2*R))
+
+        # Now check grid method
+        # First check the random method
+        s = bl.PySim(bottom_left, top_right, 1, 1)
+
+        s.add_random_discs(bottom_left, top_right, N_discs, m, R, v=1.0, pos_allocation='grid')
+
+        pos = s.initial_state['r']
+
+        for disc_ind in range(1, N_discs):
+            dist = np.linalg.norm(pos[:disc_ind] - pos[disc_ind])
+
+            self.assertTrue(np.all(dist >= 2*R))
+
+
+
 
