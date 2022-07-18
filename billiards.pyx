@@ -24,6 +24,8 @@ from cython_header cimport *
 import numpy as np
 cimport numpy as np
 
+import scipy.stats
+
 cdef _get_state_pos(vector[Disc]& state):
     """
     Returns numpy array containing the position of every disc in state.
@@ -520,7 +522,7 @@ cdef class PySim():
 
         self.s.add_disc(v_r, v_v, m, R)
 
-    def add_random_discs(self, bottom_left, top_right, N_discs, v, m, R):
+    def add_random_discs(self, bottom_left, top_right, N_discs, m, R, v=None, kB_T=None):
         """
         Adds N_discs discs with random positions and velocity directions in a 
         box defined by its bottom left and top right corners. Discs will be 
@@ -534,15 +536,20 @@ cdef class PySim():
             The top right corner of the box, expected to have shape (2,).
         N_discs : int
             The number of discs that will be added.
-        v : float or numpy.ndarray
-            The speed added discs will have. If a numpy array is passed, it 
-            should have shape (N_discs,).
         m : float or numpy.ndarray
             The mass added discs will have. If a numpy array is passed, it 
             should have shape (N_discs,).
         R : float or numpy.ndarray
             The radius added discs will have. If a numpy array is passed, it 
             should have shape (N_discs,).
+        v : float, numpy.ndarray or None, optional
+            The speed added discs will have. If a numpy array is passed, it 
+            should have shape (N_discs,). If it is None, kB_T should be specified.
+            The default is None.
+        kB_T : float or None, optional
+            The temperature added discs will have, drawn from a 2d 
+            Maxwell-Boltzmann distribution. If it is None, v should be specified.
+            The default is None.
 
         Returns
         -------
@@ -570,12 +577,35 @@ cdef class PySim():
         radius[:N_current_state] = current_state['R']
         radius[N_current_state:] = R
 
+        # Now set about generating velocities of discs
+        if v is None and kB_T is None:
+            raise ValueError("One of v or kB_T must be specified, both were None")
+        elif v is not None and kB_T is not None:
+            raise ValueError(f"Only one of v and T can be specified. v was: {v}, kB_T was: {kB_T}")
+
         velocity = np.empty((N_current_state + N_discs, 2), dtype=np.float64)
         angle = 2*np.pi*np.random.random(N_discs)
-
         velocity[:N_current_state] = current_state['v']
-        velocity[N_current_state:, 0] = v*np.cos(angle)
-        velocity[N_current_state:, 1] = v*np.sin(angle)
+
+        # All new discs either have the passed speed(s) 
+        if v is not None:
+            velocity[N_current_state:, 0] = v*np.cos(angle)
+            velocity[N_current_state:, 1] = v*np.sin(angle)
+        else:
+            # Need to draw from a 2d Maxwell-Boltzmann distribution
+            # need to be careful if not all discs have the same mass, initially 
+            # we'll reject this possibility
+            unique_masses = np.unique(m)
+
+            if unique_masses.shape[0]!=1:
+                raise ValueError("Currently, all particles must have the same mass if kB_T is defined")
+
+            scale = np.sqrt(kB_T / unique_masses[0])
+
+            speeds = scipy.stats.chi(2, loc=0, scale=scale, size=N_discs)
+
+            velocity[N_current_state:, 0] = speeds*np.cos(angle)
+            velocity[N_current_state:, 1] = speeds*np.sin(angle)
 
         # Disc centres must be in a smaller box so they don't intersect the
         # walls

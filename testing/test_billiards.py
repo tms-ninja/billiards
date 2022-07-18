@@ -43,7 +43,7 @@ def create_20_disc_sim(n_sector_x, n_sector_y):
     s = bl.PySim(box_bottom_left, box_top_right, n_sector_x, n_sector_y)
 
     #s.add_box_walls(box_bottom_left, box_top_right)
-    s.add_random_discs(np.array(box_bottom_left), np.array(box_top_right), 20, 5.0, 1.0, 1.0)
+    s.add_random_discs(np.array(box_bottom_left), np.array(box_top_right), 20, 1.0, 1.0, v=5.0)
 
     s.setup()
 
