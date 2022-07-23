@@ -60,15 +60,23 @@ We will implement the event-driven approach, first using an inefficient $\mathca
 
 \section{Theory}
 
-\subsection{Elastic collisions}
 In the following, a particle starts at position $\vec{r}_0$ and travels with velocity $\vec{v}$. Its position is therefore given by,
 \begin{equation}
     \vec{r}_p(t)
     =
     \vec{r}_0 + \vec{v}t.
 \end{equation}
+There are three types of collisions we must consider:
+\begin{itemize}
+    \item Disc-disc collisions
+    \item Disc-wall collisions
+    \item Disc-boundary collisions
+\end{itemize}
+We first derive how to test for such collisions and then derive the physics of the collisions.
 
-\subsubsection{Collisions with walls}
+\subsection{Testing for collisions}
+
+\subsubsection{Testing for Disc-wall collisions}
 A wall that starts at a point $\vec{A}$ and ends at $\vec{B}$ can be parameterised as,
 \begin{equation}
     \vec{r}_w(s)
@@ -77,7 +85,7 @@ A wall that starts at a point $\vec{A}$ and ends at $\vec{B}$ can be parameteris
 \end{equation}
 with $0 \leq s \leq 1$. There are two ways a particle can collide with a wall. It can either collide with the ends at $\vec{A}$ or $\vec{B}$, or alternatively it can collide with main body of the wall, corresponding to $0 < s < 1$ in the above parametrisation. Initially, we only consider particles in a rectangular box. As such, particles cannot collide with the ends and so we initially only test for the second scenario.
 
-When a particle of radius $R$ collides with the wall, we note the perpendicular distance between the wall and the centre of the particle is precisely $R$. The collision takes place when,
+When a particle of radius $R$ collides with the wall, the perpendicular distance between the wall and the centre of the particle is precisely $R$. The collision takes place when,
 \begin{equation}
 \label{eq:wall_collision}
     (\vec{r}_p(t) - \vec{r}_w(s))^2 = R^2,
@@ -120,18 +128,8 @@ This has solutions,
 \end{equation}
 We are only interested in collisions in the future and so are only interested in the negative root.
 
-All collisions are currently considered to be elastic. When a particle hit a wall, the component of the particle's velocity perpendicular to the wall is simply negated. The particle's velocity therefore changes by,
-\begin{align}
-    \Delta \vec{v}
-    &=
-    -2(\vec{v} - (\vec{v} \cdot \vec{\gamma}) \vec{\gamma}), \\
-    &=
-    -2 \vec{\alpha}.
-\end{align}
-We may need to be careful to ensure the magnitude of $\vec{v}$ is unchanged.
-
-\subsection{Disc-boundary collisions}
-Boundaries are used to split the simulation area into sectors in order to improve efficiency. They are straight lines and described in the same manner as walls. However, a disc-boundary collision occurs when the centre of a disc intersects with the boundary. A disc will collide with a boundary at time,
+\subsubsection{Testing for Disc-boundary collisions}
+Boundaries are used to split the simulation area into sectors in order to improve efficiency. They are straight lines and described in the same manner as walls. However, a disc-boundary collision occurs when the centre of a disc intersects with the boundary. We can find the collision time from Eq~\ref{eq:wall_collision_sol} by setting $R = 0$. A disc will collide with a boundary at time,
 \begin{equation}
     t
     =
@@ -139,71 +137,223 @@ Boundaries are used to split the simulation area into sectors in order to improv
 \end{equation}
 $t$ must be positive for a collision to occur. Since the boundary endpoints are placed outside the simulation bounds, there is no need to ensure $0 \leq s \leq 1$. We may need to be careful if a disc is travelling along a sector boundary.
 
-\subsubsection{Collisions between discs}
-We consider collisions between two discs of masses $m_1$, $m_2$ and radii $R_1$, $R_2$ respectively. Initially we consider elastic collisions and suppose the discs do not rotate. Denoting the position of each particle as $\vec{r}_1(t)$ and $\vec{r}_2(t)$, a collision occurs when,
+\subsubsection{Testing for disc-disc collisions}
+Consider two discs $i, j$ with radii $R_i$, $R_j$ respectively. Denoting the position of each particle as $\vec{r}_i(t)$ and $\vec{r}_j(t)$, a collision occurs when,
 \begin{equation}
-    (\vec{r}_1(t) - \vec{r}_2(t))^2 = (R_1 + R_2)^2.
+    (\vec{r}_i(t) - \vec{r}_j(t))^2 = (R_i + R_j)^2.
 \end{equation}
 This has the same solution as the disc-wall collision case (Eq.~\ref{eq:wall_collision_sol}) but with,
 \begin{align}
     \vec{\alpha}
     =
-    \vec{v}_1 - \vec{v}_2,
+    \vec{v}_i - \vec{v}_j,
     &&
     \vec{\beta}
     =
-    \vec{r}_{01} - \vec{r}_{02},
+    \vec{r}_{i0} - \vec{r}_{j0},
     &&
-    R = R_1 + R_2.
+    R = R_i + R_j.
 \end{align}
-Here $\vec{v}_1$, $\vec{v}_2$ are the velocity and $\vec{r}_{01}$, $\vec{r}_{02}$ are the velocity and initial position of each respective disc. Again we are only interested in the negative solution and require $t>0$ for a future collision.
+Here $\vec{v}_i$, $\vec{v}_j$ and $\vec{r}_{i0}$, $\vec{r}_{j0}$ are the velocity and initial position of each respective disc. Again we are only interested in the negative solution and require $t>0$ for a future collision.
 
-To determine the result of a collision, we note the force acting on each particle is entirely parallel to $\vec{r}_1 - \vec{r}_2$ at the moment of collision. The component of the velocity of each particle perpendicular to $\vec{r}_1 - \vec{r}_2$ is therefore unchanged by the collision. Determining the components parallel to $\vec{r}_1 - \vec{r}_2$ is then reduced to a one dimensional problem.
+\subsection{Processing collisions}
+We now discuss the implemented physics of disc-disc and disc-wall collisions. Note that no processing is required for disc-boundary collisions, at least in terms of the physics.
 
-In the one dimensional problem, particles have initial velocities $u_1$ and $u_2$. The centre of mass moves with velocity,
+\subsubsection{Processing disc-disc collisions}
+We model the collision using constant coefficients of normal restitution, $\epsilon_\mathrm{n}$, and tangential restitution, $\epsilon_\mathrm{t}$, as described in \cite{Kremer-2014}. This approach defines the behaviour of the collision in terms of the relative velocity of the point on each disk that touches the other during the collision, $\vec{g}_{ij}$. The resulting states of discs $i$ and $j$ are then determined by,
+\begin{align}
+\label{eq:relative-velocity-relations}
+    \left( \vec{g}'_{ij} \cdot \hat{\vec{\sigma}}_{ij} \right) \hat{\vec{\sigma}}_{ij}
+    =
+    - \epsilon_\mathrm{n} \left( \vec{g}_{ij} \cdot \hat{\vec{\sigma}}_{ij} \right) \hat{\vec{\sigma}}_{ij},
+    &&
+    \left( \vec{g}'_{ij} \times \hat{\vec{\sigma}}_{ij} \right) \times \hat{\vec{\sigma}}_{ij}
+    =
+    - \epsilon_\mathrm{t} \left( \vec{g}'_{ij} \times \hat{\vec{\sigma}}_{ij} \right) \times \hat{\vec{\sigma}}_{ij},
+\end{align}
+where $\hat{\vec{\sigma}}_{ij}$ is a unit vector pointing from the centre of disk $i$ to the centre of disk $j$ at the moment of collision,
 \begin{equation}
-    w
-    =
-    \frac{m_1 u_1 + m_2 u_2}{m_1 + m_2}.
+    \hat{\vec{\sigma}}_{ij} = \frac{\vec{r}_j - \vec{r}_i}{|\vec{r}_j - \vec{r}_i|}.
 \end{equation}
-Applying conservation of momentum and energy in the COM frame produces,
+We note the sign convention in Eq~\ref{eq:relative-velocity-relations} varies but the use here is consistent with \cite{Kremer-2014}.
+
+We now broadly reproduce the derivation of \cite{Kremer-2014} for the velocities and angular velocities after the collision in a little more detail and extend it to particles with differing masses, moments of inertia and radii. We denote the moment of inertia of each disc $I_i$, $I_j$ and angular velocity $\vec{\omega}_i$, $\vec{\omega}_j$. We will again work in the centre of mass frame where the total linear momentum is zero.
+
+If particles $i$ and $j$ are colliding, and as a result of the collision particle $i$ experiences an impulse $\vec{Q}$, the new momenta of the particles are trivially, 
 \begin{align}
-    m_1 v_1 + m_2 v_2 = 0,
+\label{eq:momenta-relations}
+    \vec{P}'_i = \vec{P}_i + \vec{Q},
     &&
-    m_1 (v_1 - w)^2 + m_2 (v_2 - w)^2 = m_1 (u_1 - w)^2 + m_2 (u_2 - w)^2,
-\end{align}
-where $v_1$ and $v_2$ are the final velocities. Solving these gives,
-\begin{align}
-    v_1
-    =
-    \frac{(m_1 - m_2) u_1 + 2m_2 u_2}{m_1 + m_2},
-    &&
-    v_2
-    =
-    \frac{2m_1 u_1 + (m_2 - m_1) u_2}{m_1 + m_2}.
-\end{align}
-Alternatively, the change in velocity is,
-\begin{align}
-    \Delta v_1
-    =
-    \frac{2m_2}{m_1 + m_2} (u_2 - u_1),
-    &&
-    \Delta v_2
-    =
-    \frac{2m_1}{m_1 + m_2} (u_1 - u_2).
+    \vec{P}'_j = \vec{P}_j - \vec{Q}.
 \end{align}
 
-Returning to the two dimensional problem, we have the perpendicular velocity of each disc changes by $\Delta v_1$ and $\Delta v_2$ respectively. Each disc's velocity changes by,
+For the new angular velocities, we note particle $i$ experiences a force acting on the surface of the point of collision. This force provides disc $i$ with the impulse $\vec{Q}$, but it also produces a torque and therefore an angular impulse,
+\begin{equation}
+    R_i \hat{\vec{\sigma}}_{ij} \times \vec{Q},
+\end{equation}
+This torque acts solely to change $\vec{\omega}_i$. Hence we may express the new angular velocities as,
 \begin{align}
-    \Delta \vec{v}_1
-    =
-    \frac{2m_2}{m_1 + m_2} \frac{(\vec{u}_2 - \vec{u}_1) \cdot \Delta \vec{r}}{\Delta r^2},
+\label{eq:ang-velocity-relations}
+    \vec{\omega}'_i = \vec{\omega}_i + \frac{R_i}{I_i} \hat{\vec{\sigma}}_{ij} \times \vec{Q},
     &&
-    \Delta \vec{v}_2
-    =
-    -\frac{2m_1}{m_1 + m_2} \frac{(\vec{u}_2 - \vec{u}_1) \cdot \Delta \vec{r}}{\Delta r^2}.
+    \vec{\omega}'_j = \vec{\omega}_j + \frac{R_j}{I_j} \hat{\vec{\sigma}}_{ij} \times \vec{Q},
 \end{align}
-$\Delta r = \vec{r}_2 - \vec{r}_1$ is a vector from the centre of disc 1 to disc 2 and has magnitude $R_1 + R_2$. 
+where we have used $\hat{\vec{\sigma}}_{ji} = -\hat{\vec{\sigma}}_{ij}$ for $\vec{\omega}'_j$.
+
+As a sanity check, we may check momentum and angular momentum are indeed conserved. Momentum is clearly conserved. The angular momentum is then,
+\begin{align}
+    \vec{r}_i \times \vec{P}_i + \vec{r}_j \times \vec{P}_j +
+    I_i \vec{\omega}_i + I_j \vec{\omega}_j =& \,
+    \vec{r}_i \times \left( \vec{P}_i + \vec{Q} \right) + 
+    \vec{r}_j \times \left( \vec{P}_j - \vec{Q} \right) + \\
+    & I_i \left( \vec{\omega}_i + \frac{R_i}{I_i} \hat{\vec{\sigma}}_{ij} \times \vec{Q} \right) +
+    I_j \left( \vec{\omega}_j + \frac{R_j}{I_j} \hat{\vec{\sigma}}_{ij} \times \vec{Q} \right).
+\end{align}
+Simplifying yields,
+\begin{equation}
+    \left( \vec{r}_j - \vec{r}_i \right) \times \vec{Q}
+    =
+    \left( R_i + R_j \right) \hat{\vec{\sigma}}_{ij} \times \vec{Q},
+\end{equation}
+which is identical by the definition of $\hat{\vec{\sigma}}_{ij}$.
+
+The relative velocity at the point of collision can be written as,
+\begin{align}
+    \vec{g}_{ij}
+    &=
+    \vec{v}_i - \vec{v}_j + 
+    \left(
+        R_i \vec{\omega}_i + R_j \vec{\omega}_j
+    \right) \times \hat{\vec{\sigma}}_{ij}, \\
+    &=
+    \frac{m_i + m_j}{m_i m_j}
+    \vec{P}_i
+    + 
+    \left(
+        R_i \vec{\omega}_i + R_j \vec{\omega}_j
+    \right) \times \hat{\vec{\sigma}}_{ij},
+\end{align}
+where we have used the fact we are working in the centre of mass frame to write $\vec{P}_j = - \vec{P}_i$. Using the expressions for the final momenta and angular velocities in Eq~\ref{eq:momenta-relations} and Eq~\ref{eq:ang-velocity-relations}, we can write the relative velocity at the point of collision after the collision as,
+\begin{align}
+    \vec{g}'_{ij}
+    &=
+    \frac{m_i + m_j}{m_i m_j}
+    \vec{P}'_i
+    + 
+    \left(
+        R_i \vec{\omega}'_i + R_j \vec{\omega}'_j
+    \right) \times \hat{\vec{\sigma}}_{ij}, \\
+    &=
+    \frac{m_i + m_j}{m_i m_j}
+    \left(
+        \vec{P}_i + \vec{Q}
+    \right)
+    + 
+    \left(
+        R_i 
+        \left[
+            \vec{\omega}_i + \frac{R_i}{I_i} \hat{\vec{\sigma}}_{ij} \times \vec{Q}
+        \right]
+        +
+        R_j
+        \left[
+            \vec{\omega}_j + \frac{R_j}{I_j} \hat{\vec{\sigma}}_{ij} \times \vec{Q}
+        \right]
+    \right) \times \hat{\vec{\sigma}}_{ij}, \\
+    &=
+    \vec{g}_{ij}
+    +
+    \frac{m_i + m_j}{m_i m_j} \vec{Q}
+    +
+    \left(
+        \frac{R_i^2}{I_i} + \frac{R_j^2}{I_j}
+    \right)
+    \left(
+        \hat{\vec{\sigma}}_{ij} \times \vec{Q}
+    \right)
+    \times \hat{\vec{\sigma}}_{ij}
+\end{align}
+
+We now seek to find an expression for $\vec{Q}$. Substituting $\vec{g}'_{ij}$ into the first relation of Eq~\ref{eq:relative-velocity-relations} gives,
+\begin{equation}
+\label{eq:Q-dot-sigma}
+    \vec{Q} \cdot \hat{\vec{\sigma}}_{ij}
+    =
+    -(1 + \epsilon_\mathrm{n})
+    \frac{m_i m_j}{m_i + m_j}
+    \vec{g}_{ij} \cdot \hat{\vec{\sigma}}_{ij}.
+\end{equation}
+From the second relation of Eq~\ref{eq:relative-velocity-relations} and using that for some vector $\vec{A}$ we have $(\vec{A} \times \hat{\vec{\sigma}}_{ij}) \times \hat{\vec{\sigma}}_{ij} = (\vec{A} \cdot \hat{\vec{\sigma}}_{ij}) \hat{\vec{\sigma}}_{ij} - \vec{A}$, we have,
+\begin{align}
+    - \epsilon_\mathrm{t} (\vec{g}_{ij} \times \hat{\vec{\sigma}}_{ij}) \times \hat{\vec{\sigma}}_{ij}
+    =& \,
+    (\vec{g}_{ij} \times \hat{\vec{\sigma}}_{ij}) \times \hat{\vec{\sigma}}_{ij}
+    +
+    \frac{m_i + m_j}{m_i m_j}
+    (\vec{Q} \times \hat{\vec{\sigma}}_{ij}) \times \hat{\vec{\sigma}}_{ij} \\
+     &+ 
+    \left(
+        \frac{R_i^2}{I_i} + \frac{R_j^2}{I_j}
+    \right)
+    (\vec{Q} \times \hat{\vec{\sigma}}_{ij}) \times \hat{\vec{\sigma}}_{ij},
+\end{align}
+which leads to,
+\begin{equation}
+    \vec{Q} - (\vec{Q} \cdot \hat{\vec{\sigma}}_{ij}) \hat{\vec{\sigma}}_{ij}
+    =
+    -(1+\epsilon_\mathrm{t})
+    \left[
+        \frac{m_i + m_j}{m_i m_j}
+        +
+        \frac{R_i^2}{I_i} + \frac{R_j^2}{I_j}
+    \right]^{-1}
+    \left(
+        \vec{g}_{ij} - (\vec{g}_{ij} \cdot \hat{\vec{\sigma}}_{ij}) \hat{\vec{\sigma}}_{ij}
+    \right)
+\end{equation}
+Combining this with Eq~\ref{eq:Q-dot-sigma} produces an expression for $\vec{Q}$,
+\begin{equation}
+\label{eq:disc-disc-Q}
+    \vec{Q}
+    =
+    -(1 + \epsilon_\mathrm{n})
+    \frac{m_i m_j}{m_i + m_j}
+    (\vec{g}_{ij} \cdot \hat{\vec{\sigma}}_{ij}) \hat{\vec{\sigma}}_{ij}
+    -
+    (1+\epsilon_\mathrm{t})
+    \left[
+        \frac{m_i + m_j}{m_i m_j}
+        +
+        \frac{R_i^2}{I_i} + \frac{R_j^2}{I_j}
+    \right]^{-1}
+    \left(
+        \vec{g}_{ij} - (\vec{g}_{ij} \cdot \hat{\vec{\sigma}}_{ij}) \hat{\vec{\sigma}}_{ij}
+    \right).
+\end{equation}
+Although we derived this expression for $\vec{Q}$ in the centre of mass frame, since $\vec{g}_{ij}$ and $\hat{\vec{\sigma}}_{ij}$ only depend on the relative velocity and position, it will be the same in all inertial frames. Similarly, the expressions in Eq~\ref{eq:momenta-relations} and Eq~\ref{eq:ang-velocity-relations} will also be the same in all frames. We therefore do not need to transform into the centre of mass frame and back to use it.
+
+The ranges of $\epsilon_\mathrm{n}$ and $\epsilon_\mathrm{t}$ are $0 \leq \epsilon_\mathrm{n} \leq 1$ and $-1 \leq \epsilon_\mathrm{t} \leq 1$. $\epsilon_\mathrm{t} = -1$ corresponds to so called perfectly smooth discs whereas $\epsilon_\mathrm{t} = 1$ to so called perfectly rough. In the case where $\epsilon_\mathrm{n} = 1$ and $\epsilon_\mathrm{t} = \pm 1$ it can be shown energy is conserved during the collision. $\vec{Q}$ reduces to an expression consistent with perfectly smooth discs in the case $\epsilon_\mathrm{n} = 1$, $\epsilon_\mathrm{t} = -1$ as expected. It also reduces to an expression consistent with Eq~2.7 of \cite{Kremer-2014} in the case of disks with identical masses, radii and moments of inertia.
+
+\subsubsection{Processing disc-wall collisions}
+A disc-wall collision can be modelled as a disc-disc collision where the disc that represents the wall has infinite mass/moment of inertia and zero velocity/angular velocity. In this limit, Eq~\ref{eq:disc-disc-Q} becomes (dropping subscript $i, j$),
+\begin{equation}
+    \vec{Q}
+    =
+    -(1 + \epsilon_\mathrm{n})
+    m
+    (\vec{g} \cdot \hat{\vec{\sigma}}) \hat{\vec{\sigma}}
+    -
+    (1+\epsilon_\mathrm{t})
+    \left[
+        \frac{1}{m}
+        +
+        \frac{R^2}{I}
+    \right]^{-1}
+    \left(
+        \vec{g} - (\vec{g} \cdot \hat{\vec{\sigma}}) \hat{\vec{\sigma}}
+    \right),
+\end{equation}
+where $\vec{g} = \vec{v} + R \vec{\omega} \times \hat{\vec{\sigma}}$ and $\hat{\vec{\sigma}}$ is a unit vector pointing from the centre of the disc to the point on it's surface colliding with the wall.
 
 \subsection{Insights from statistical physics}
 
