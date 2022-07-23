@@ -835,6 +835,43 @@ cdef class PySim():
 
         return (bottom_left, top_right)
 
+    @property
+    def e_n(self):
+        """
+        Gets or sets the coefficient of normal restitution. Should be between
+        0.0 and 1.0 inclusive.
+
+        Raises
+        ------
+        ValueError
+            Raised if one attempts to set e_n > 1.0 or e_n < 0.0
+        
+        """
+
+        return self.s.get_e_n()
+    @e_n.setter
+    def e_n(self, double new_e_n):
+        self.s.set_e_n(new_e_n)
+    
+    @property
+    def e_t(self):
+        """
+        Gets or sets the coefficient of tangential restitution. Should be 
+        between -1.0 and 1.0 inclusive. -1.0 corresponds to perfectly smooth
+        discs, +1.0 to perfectly rough discs.
+
+        Raises
+        ------
+        ValueError
+            Raised if one attempts to set e_t > 1.0 or e_t < -1.0
+        
+        """
+
+        return self.s.get_e_t()
+    @e_t.setter
+    def e_t(self, double new_e_t):
+        self.s.set_e_t(new_e_t)
+
     # Generators for replaying the simulation
     def replay_by_event(self):
         """

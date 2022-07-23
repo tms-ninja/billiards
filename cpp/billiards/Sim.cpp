@@ -251,6 +251,34 @@ void Sim::add_disc(const Vec2D& pos, const Vec2D& v, double m, double R)
 	initial_state.emplace_back(pos, v, m, R, sector_ID);
 }
 
+double Sim::get_e_n()
+{
+	return e_n;
+}
+
+void Sim::set_e_n(double new_e_n)
+{
+	if (new_e_n > 1.0 || new_e_n < 0.0)
+		throw std::invalid_argument("Coefficient of normal restitution must be 0.0 <= e_n <= 1.0");
+
+	e_n = new_e_n;
+}
+
+double Sim::get_e_t()
+{
+	return e_t;
+}
+
+void Sim::set_e_t(double new_e_t)
+{
+	if (new_e_t > 1.0 || new_e_t < -1.0)
+		throw std::invalid_argument("Coefficient of tangential restitution must be -1.0 <= e_t <= 1.0");
+
+	e_t = new_e_t;
+}
+
+
+
 double Sim::get_time(size_t disc_ind)
 {
 	return events_vec[disc_ind][new_vec[disc_ind]].t;

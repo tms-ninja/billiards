@@ -71,7 +71,17 @@ public:
 	// Adds a disc to the simulation. Should not be called after the simulation has started
 	void add_disc(const Vec2D& pos, const Vec2D& v, double m, double R);
 
+	// Getter/setter methods for coefficients of restitution
+
+	double get_e_n();
+	void set_e_n(double new_e_n);
+
+	double get_e_t();
+	void set_e_t(double new_e_t);
+
 private:
+	double e_n{ 1.0 };   // Coefficient of normal restitution, default is perfectly elasic collisions
+	double e_t{ -1.0 };  // Coefficient of tangential restitution, default is perfectly smooth
 
 	// First N+1 horizontal boundaries from left to right, then M+1 vertical bounraries from 
 	// bottom to top
