@@ -769,6 +769,40 @@ class Test_PySim(unittest.TestCase):
 
         assert_allclose(speeds_mean, expected_mean, atol=0.2)
 
+    def test_e_n_allowed_values(self):
+        """Tests PySim.e_n rejects values outside 0.0 <= e_n <= 1.0"""
+
+        sim = create_20_disc_sim(n_sector_x=1, n_sector_y=1)['s']
+        
+        # All these values should be allowed
+        sim.e_n = 1.0
+        sim.e_n = 0.0
+        sim.e_n = 0.5
+
+        # All these should be rejected
+        with self.assertRaises(ValueError) as _:
+            sim.e_n = -0.1
+        
+        with self.assertRaises(ValueError) as _:
+            sim.e_n = 1.1
+
+    def test_e_t_allowed_values(self):
+        """Tests PySim.e_t rejects values outside -1.0 <= e_t <= 1.0"""
+
+        sim = create_20_disc_sim(n_sector_x=1, n_sector_y=1)['s']
+        
+        # All these values should be allowed
+        sim.e_t = 1.0
+        sim.e_t = -1.0
+        sim.e_t = 0.0
+
+        # All these should be rejected
+        with self.assertRaises(ValueError) as _:
+            sim.e_t = -1.1
+        
+        with self.assertRaises(ValueError) as _:
+            sim.e_t = 1.1
+
 
 
 
