@@ -183,6 +183,16 @@ Vec2D operator/(const double n, Vec2D v1)
 	return v1;
 }
 
+Vec2D operator+(const Vec2D& v)
+{
+	return v;
+}
+
+Vec2D operator-(const Vec2D& v)
+{
+	return Vec2D{ -v[0], v[1] };
+}
+
 std::ostream & operator<<(std::ostream & os, const Vec2D & v)
 {
 	os << v[0] << '\t' << v[1];
