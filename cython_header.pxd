@@ -40,8 +40,10 @@ cdef extern from "Disc.h":
         Disc(Vec2D&, Vec2D&, double,double) except+
         Vec2D r
         Vec2D v
+        double w
         double m
         double R
+        double I
 
 
 cdef extern from "Wall.cpp":
@@ -75,6 +77,7 @@ cdef extern from "Event.h":
         Event(double, size_t, size_t, bool, Vec2D&, Vec2D&) except+
         Vec2D pos
         Vec2D new_v
+        double new_w
         double t
         size_t ind
         size_t second_ind
@@ -109,7 +112,7 @@ cdef extern from "Sim.h":
 
         void advance(size_t, double, bool)
         void setup()
-        void add_disc(Vec2D pos, Vec2D v, double m, double R) except+
+        void add_disc(Vec2D pos, Vec2D v, double w, double m, double R, double I) except+
 
         # Getter setter methods for coefficients of normal/tangential restitution
         double get_e_n()

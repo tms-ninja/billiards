@@ -18,7 +18,7 @@
 
 #include "Disc.h"
 
-Disc::Disc(const Vec2D & pos, const Vec2D & v, double m, double R, size_t sector_ID)
-	: r{ pos }, v{ v }, m{ m }, R{ R }, sector_ID{sector_ID}
+Disc::Disc(const Vec2D& pos, const Vec2D& v, double w, double m, double R, double I, size_t sector_ID)
+	: r{ pos }, v{ v }, w{ w }, m{ m }, R{ R }, I{ I }, sector_ID{ sector_ID }
 {
 }

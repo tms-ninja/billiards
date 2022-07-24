@@ -22,16 +22,18 @@
 class Disc
 {
 public:
-	Vec2D r;
-	Vec2D v;
-	double m;
-	double R;
+	Vec2D r;   // Position
+	Vec2D v;   // Velocity
+	double w;  // Angular velocity
+	double m;  // Mass
+	double R;  // Radius
+	double I;  // Moment of Inertia
 	double current_time;
 
 	size_t sector_ID;
 
 	Disc() = default;
 
-	Disc(const Vec2D &pos, const Vec2D &v, double m, double R, size_t sector_ID);
+	Disc(const Vec2D &pos, const Vec2D &v, double w, double m, double R, double I, size_t sector_ID);
 };
 
