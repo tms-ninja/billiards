@@ -43,6 +43,8 @@ public:
 	Vec2D& operator*=(const double v);
 	Vec2D& operator/=(const double v);
 
+
+
 	inline double mag() const
 	{
 		return std::hypot(data[0], data[1]);
@@ -75,5 +77,8 @@ Vec2D operator+(const double n, Vec2D v1);
 Vec2D operator-(const double n, Vec2D v1);
 Vec2D operator*(const double n, Vec2D v1);
 Vec2D operator/(const double n, Vec2D v1);
+
+Vec2D operator+(const Vec2D& v);
+Vec2D operator-(const Vec2D& v);
 
 std::ostream& operator<<(std::ostream& os, const Vec2D& v);
