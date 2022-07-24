@@ -69,7 +69,7 @@ public:
 	void setup();
 
 	// Adds a disc to the simulation. Should not be called after the simulation has started
-	void add_disc(const Vec2D& pos, const Vec2D& v, double m, double R);
+	void add_disc(const Vec2D& pos, const Vec2D& v, double w, double m, double R, double I);
 
 	// Getter/setter methods for coefficients of restitution
 
@@ -148,10 +148,10 @@ private:
 	static double test_disc_boundary_col(const Event& e, const Wall& w);
 
 	// Performs a disc-wall collision
-	static void disc_wall_col(Event &e, const Wall &w);
+	void disc_wall_col(const Disc& d, Event &e, const Wall &w);
 
 	// performs a disc-disc collision
-	static void disc_disc_col(Disc &d1, Disc &d2, Event& e1, Event &e2);
+	void disc_disc_col(Disc &d1, Disc &d2, Event& e1, Event &e2);
 
 	// Advances the disc to time t
 	static void advance(const Event &old_e, Event &new_e, double t);

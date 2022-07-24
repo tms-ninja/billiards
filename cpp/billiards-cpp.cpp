@@ -28,6 +28,7 @@ Sim setup_perf_test()
 
 	Vec2D pos, v;
 	double m{ 1.0 }, R{ 0.4 };
+	double I{ std::numeric_limits<double>::infinity() }, w{ 0.0 };
 	double L{ 10.0 };  // width of box
 
 	// Add balls on a 10 by 10 grid
@@ -44,7 +45,7 @@ Sim setup_perf_test()
 
 			v /= v.mag();
 
-			s.add_disc(pos, v, m, R);
+			s.add_disc(pos, v, w, m, R, I);
 		}
 	}
 

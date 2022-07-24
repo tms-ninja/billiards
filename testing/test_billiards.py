@@ -23,12 +23,13 @@ from numpy.testing import assert_allclose, assert_array_equal
 
 import billiards as bl
 
-def total_KE(m, v):
+def total_KE(m, v, I, w):
     ke = m * np.linalg.norm(v, axis=1)**2
+    ke += I * w**2
 
     return np.sum(ke) / 2.0
 
-def create_20_disc_sim(n_sector_x, n_sector_y):
+def create_20_disc_sim(n_sector_x, n_sector_y, e_t):
     """
     Creates and runs a simulation containing 20 discs for verification pruposes
     Can choose the number of sectors to be used in the simulation
@@ -41,6 +42,7 @@ def create_20_disc_sim(n_sector_x, n_sector_y):
     box_top_right = [20.0, 20.0]
 
     s = bl.PySim(box_bottom_left, box_top_right, n_sector_x, n_sector_y)
+    s.e_t = e_t
 
     #s.add_box_walls(box_bottom_left, box_top_right)
     s.add_random_discs(np.array(box_bottom_left), np.array(box_top_right), 20, 1.0, 1.0, v=5.0)
@@ -55,8 +57,11 @@ def create_20_disc_sim(n_sector_x, n_sector_y):
 
 class Test_PySim(unittest.TestCase):
     
-    def test_disc_wall_col_vertical(self):
-        """Tests discs collide with vertical walls correctly"""
+    ####################################################################
+    # Test collisions physics is corect for perfectly smooth discs
+    ####################################################################
+    def test_disc_wall_col_vertical_smooth_disc(self):
+        """Tests smooth discs collide with vertical walls correctly"""
         s = bl.PySim([0.0, 0.0], [10.0, 10.0])
 
         s.add_disc([3.0, 3.0], [-1.0, 1.0], 1.0, 1.0)
@@ -78,8 +83,8 @@ class Test_PySim(unittest.TestCase):
         assert_allclose(ev.pos, expected_pos)
         assert_allclose(ev.new_v, expected_v)
 
-    def test_disc_wall_col_horizontal(self):
-        """Tests discs collide with horizontal walls correctly"""
+    def test_disc_wall_col_horizontal_smooth_disc(self):
+        """Tests smooth discs collide with horizontal walls correctly"""
         s = bl.PySim([0.0, 0.0], [10.0, 10.0])
 
         s.add_disc([3.0, 7.0], [1.0, 1.0], 1.0, 1.0)
@@ -101,8 +106,8 @@ class Test_PySim(unittest.TestCase):
         assert_allclose(ev.pos, expected_pos)
         assert_allclose(ev.new_v, expected_v)
 
-    def test_disc_wall_col_diagonal(self):
-        """Tests discs collide with diagonal walls correctly"""
+    def test_disc_wall_col_diagonal_smooth_disc(self):
+        """Tests smooth discs collide with diagonal walls correctly"""
         s = bl.PySim([-10.0, -10.0], [10.0, 10.0])
 
         s.add_wall([0.0, 0.0], [10.0, 10.0])
@@ -125,8 +130,8 @@ class Test_PySim(unittest.TestCase):
         assert_allclose(ev.pos, expected_pos)
         assert_allclose(ev.new_v, expected_v, atol=1e-15)
 
-    def test_disc_disc_col_vertical(self):
-        """Tests vertial disc-disc collisions"""
+    def test_disc_disc_col_vertical_smooth_disc(self):
+        """Tests smooth vertial disc-disc collisions"""
         s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
 
         s.add_disc([3.0, 0.0], [0.0, 1.0], 1.0, 1.0)
@@ -168,8 +173,8 @@ class Test_PySim(unittest.TestCase):
             assert_allclose(ev.pos, exp['pos'])
             assert_allclose(ev.new_v, exp['new_v'])
 
-    def test_disc_disc_col_horizontally(self):
-        """Tests horizontal disc-dsic collisions"""
+    def test_disc_disc_col_horizontally_smooth_disc(self):
+        """Tests smooth horizontal disc-dsic collisions"""
         s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
 
         s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 1.0)
@@ -211,10 +216,10 @@ class Test_PySim(unittest.TestCase):
             assert_allclose(ev.pos, exp['pos'])
             assert_allclose(ev.new_v, exp['new_v'])
     
-    def test_disc_disc_col_off_centre(self):
+    def test_disc_disc_col_off_centre_smooth_disc(self):
         """
-        Tests off centre disc-disc collisions, where disc velocity isn't
-        towards the other disc's centre.
+        Tests off centre disc-disc collisions for smooth discs, where disc 
+        velocity isn't towards the other disc's centre. 
         """
         s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
 
@@ -257,8 +262,11 @@ class Test_PySim(unittest.TestCase):
             assert_allclose(ev.pos, exp['pos'])
             assert_allclose(ev.new_v, exp['new_v'], atol=1e-14)
 
-    def test_disc_disc_col_speed(self):
-        """Tests disc-disc collisions where each disc has a different speed"""
+    def test_disc_disc_col_speed_smooth_disc(self):
+        """
+        Tests disc-disc collisions for smooth discs where each disc has a
+        different speed
+        """
         s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
 
         s.add_disc([0.0, 0.0], [2.0, 0.0], 1.0, 1.0)
@@ -300,8 +308,11 @@ class Test_PySim(unittest.TestCase):
             assert_allclose(ev.pos, exp['pos'])
             assert_allclose(ev.new_v, exp['new_v'])
     
-    def test_disc_disc_col_mass(self):
-        """Tests disc-disc collisions where each disc has a different mass"""
+    def test_disc_disc_col_mass_smooth_disc(self):
+        """
+        Tests disc-disc collisions for smooth discs where each disc has a 
+        different mass
+        """
         s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
 
         s.add_disc([0.0, 0.0], [1.0, 0.0], 2.0, 1.0)
@@ -343,8 +354,11 @@ class Test_PySim(unittest.TestCase):
             assert_allclose(ev.pos, exp['pos'])
             assert_allclose(ev.new_v, exp['new_v'])
     
-    def test_disc_disc_col_radii(self):
-        """Tests disc-disc collisions where each disc has a different radius"""
+    def test_disc_disc_col_radii_smooth_disc(self):
+        """
+        Tests disc-disc collisions for smooth discs where each disc has a 
+        different radius
+        """
         s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
 
         s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 2.0)
@@ -386,33 +400,547 @@ class Test_PySim(unittest.TestCase):
             assert_allclose(ev.pos, exp['pos'])
             assert_allclose(ev.new_v, exp['new_v'])
     
-    def test_KE_conservation(self):
+    def test_KE_conservation_smooth_disc(self):
         """
         Tests kinetic energy is approximately conserved during a 
-        test simulation
+        test simulation involving smooth discs
         """
         
-        sim = create_20_disc_sim(1, 1)
+        sim = create_20_disc_sim(1, 1, e_t=1.0)  # Set e_t for smooth discs
 
         s = sim['s']
 
         initial_state = s.initial_state
 
-        initial_KE = total_KE(initial_state['m'], initial_state['v'])
+        initial_KE = total_KE(initial_state['m'], initial_state['v'], initial_state['I'], initial_state['w'])
 
         for c_state in s.replay_by_time(0.1):
             m, v = c_state['m'], c_state['v']
+            I, w = c_state['I'], c_state['w']
 
-            current_KE = total_KE(m, v)
+            current_KE = total_KE(m, v, I, w)
 
             self.assertAlmostEqual(current_KE, initial_KE)
 
+    ####################################################################
+    # Test collisions physics is corect for perfectly rough discs
+    ####################################################################
+    def test_disc_wall_col_vertical_rough_disc(self):
+        """Tests rough discs collide with vertical walls correctly"""
+
+        s = bl.PySim([0.0, 0.0], [10.0, 10.0])
+        s.e_t = 1.0  # Set discs to being perfectly rough
+
+        s.add_disc([3.0, 3.0], [-1.0, 1.0], 1.0, 1.0, I=0.5, w=0.0)
+
+        s.setup()
+
+        s.advance(1, 10.0, True)
+
+        # Check expected event properties
+        ev = s.events[0]
+
+        expected_pos = np.array([1.0, 5.0])
+        expected_v = np.array([1.0, 1 / 3])
+        expected_w = 4 / 3
+
+        self.assertAlmostEqual(ev.t, 2.0)
+        self.assertEqual(ev.ind, 0)
+        self.assertEqual(ev.second_ind, 0)
+        self.assertEqual(ev.disc_wall_col, bl.PyCol_Type.Disc_Wall)
+
+        assert_allclose(ev.pos, expected_pos)
+        assert_allclose(ev.new_v, expected_v)
+        assert_allclose(ev.new_w, expected_w)
+
+    def test_disc_wall_col_horizontal_rough_disc(self):
+        """Tests rough discs collide with horizontal walls correctly"""
+
+        s = bl.PySim([0.0, 0.0], [10.0, 10.0])
+        s.e_t = 1.0  # Set discs to being perfectly rough
+
+        s.add_disc([3.0, 7.0], [1.0, 1.0], 1.0, 1.0, I=0.5, w=0.0)
+
+        s.setup()
+
+        s.advance(1, 10.0, True)
+
+        # Check expected event properties
+        ev = s.events[0]
+
+        expected_pos = np.array([5.0, 9.0])
+        expected_v = np.array([1 / 3, -1.0])
+        expected_w = 4 / 3
+
+        self.assertAlmostEqual(ev.t, 2.0)
+        self.assertEqual(ev.ind, 0)
+        self.assertEqual(ev.second_ind, 1)
+        self.assertEqual(ev.disc_wall_col, bl.PyCol_Type.Disc_Wall)
+        assert_allclose(ev.pos, expected_pos)
+        assert_allclose(ev.new_v, expected_v)
+        assert_allclose(ev.new_w, expected_w)
+
+    def test_disc_wall_col_diagonal_rough_disc(self):
+        """Tests rough discs collide with diagonal walls correctly"""
+
+        s = bl.PySim([-10.0, -10.0], [10.0, 10.0])
+        s.e_t = 1.0  # Set discs to being perfectly rough
+
+        s.add_wall([0.0, 0.0], [10.0, 10.0])
+        s.add_disc([3.0, 0.0], [0.0, 1.0], 1.0, 1.0, I=0.5, w=0.0)
+
+        s.setup()
+
+        s.advance(1, 10.0, True)
+
+        # Check expected event properties
+        ev = s.events[0]
+
+        expected_pos = np.array([3.0, 3.0 - 1 / np.sin(np.pi/4)])
+        expected_v = np.array([2 / 3, -1 / 3])
+        expected_w = 2 * np.sqrt(2.0) / 3
+
+        self.assertAlmostEqual(ev.t, 3.0 - 1 / np.sin(np.pi/4))
+        self.assertEqual(ev.ind, 0)
+        self.assertEqual(ev.second_ind, 4)
+        self.assertEqual(ev.disc_wall_col, bl.PyCol_Type.Disc_Wall)
+        assert_allclose(ev.pos, expected_pos)
+        assert_allclose(ev.new_v, expected_v, atol=1e-15)
+        assert_allclose(ev.new_w, expected_w, atol=1e-15)
+
+    def test_disc_disc_col_vertical_rough_disc(self):
+        """Tests rough vertial disc-disc collisions"""
+
+        s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
+        s.e_t = 1.0  # Set discs to being perfectly rough
+
+        s.add_disc([3.0, 0.0], [0.0, 1.0], 1.0, 1.0, I=0.5, w=1.0)
+        s.add_disc([3.0, 10.0], [0.0, -1.0], 1.0, 1.0, I=0.5, w=1.0)
+
+        s.setup()
+        s.advance(2, 10.0, True)
+
+        # Check expected event properties
+        events = s.events
+
+        if events[0].ind == 1:
+            events[0], events[1] = events[1], events[0]
+        
+        expected = [
+            {
+                't': 4.0,
+                'ind': 0,
+                'second_ind': 1,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([3.0, 4.0]),
+                'new_v': np.array([2 / 3, -1.0]),
+                'new_w': - 1 / 3
+            },
+            {
+                't': 4.0,
+                'ind': 1,
+                'second_ind': 0,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([3.0, 6.0]),
+                'new_v': np.array([-2 / 3, 1.0]),
+                'new_w': - 1 / 3
+            }
+        ]
+
+        for ev, exp in zip(events, expected):
+            self.assertAlmostEqual(ev.t, exp['t'])
+            self.assertEqual(ev.ind, exp['ind'])
+            self.assertEqual(ev.second_ind, exp['second_ind'])
+            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
+            assert_allclose(ev.pos, exp['pos'])
+            assert_allclose(ev.new_v, exp['new_v'])
+            assert_allclose(ev.new_w, exp['new_w'])
+
+    def test_disc_disc_col_horizontally_rough_disc(self):
+        """Tests rough horizontal disc-disc collisions"""
+
+        s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
+        s.e_t = 1.0  # Set discs to being perfectly rough
+
+        s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 1.0, I=0.5, w=1.0)
+        s.add_disc([10.0, 0.0], [-1.0, 0.0], 1.0, 1.0, I=0.5, w=1.0)
+
+        s.setup()
+        s.advance(2, 10.0, True)
+
+        # Check expected event properties
+        events = s.events
+
+        if events[0].ind == 1:
+            events[0], events[1] = events[1], events[0]
+        
+        expected = [
+            {
+                't': 4.0,
+                'ind': 0,
+                'second_ind': 1,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([4.0, 0.0]),
+                'new_v': np.array([-1.0, -2 / 3]),
+                'new_w': - 1 / 3
+            },
+            {
+                't': 4.0,
+                'ind': 1,
+                'second_ind': 0,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([6.0, 0.0]),
+                'new_v': np.array([1.0, 2 / 3]),
+                'new_w': - 1 / 3
+            }
+        ]
+
+        for ev, exp in zip(events, expected):
+            self.assertAlmostEqual(ev.t, exp['t'])
+            self.assertEqual(ev.ind, exp['ind'])
+            self.assertEqual(ev.second_ind, exp['second_ind'])
+            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
+            assert_allclose(ev.pos, exp['pos'])
+            assert_allclose(ev.new_v, exp['new_v'])
+            assert_allclose(ev.new_w, exp['new_w'])
+    
+    def test_disc_disc_col_off_centre_rough_disc(self):
+        """
+        Tests off centre disc-disc collisions for rough discs, where disc 
+        velocity isn't towards the other disc's centre. 
+        """
+
+        s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
+        s.e_t = 1.0  # Set discs to being perfectly rough
+        
+        s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 1.0, I=0.5, w=1.0)
+        s.add_disc([10.0, np.sqrt(2)], [-1.0, 0.0], 1.0, 1.0, I=0.5, w=1.0)
+
+        s.setup()
+        s.advance(2, 10.0, True)
+
+        # Check expected event properties
+        events = s.events
+
+        if events[0].ind == 1:
+            events[0], events[1] = events[1], events[0]
+        
+        expected = [
+            {
+                't': 5 - np.sqrt(2)/2,
+                'ind': 0,
+                'second_ind': 1,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([5 - np.sqrt(2)/2, 0.0]),
+                'new_v': np.array([ (-1+np.sqrt(2)) / 3, -(2+np.sqrt(2)) / 3]),
+                'new_w': (-1 + 2*np.sqrt(2)) / 3
+            },
+            {
+                't': 5 - np.sqrt(2)/2,
+                'ind': 1,
+                'second_ind': 0,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([5 + np.sqrt(2)/2, np.sqrt(2)]),
+                'new_v': np.array([(1 - np.sqrt(2)) / 3, (2+np.sqrt(2)) / 3 ]),
+                'new_w': (-1 + 2*np.sqrt(2)) / 3
+            }
+        ]
+
+        for ev, exp in zip(events, expected):
+            self.assertAlmostEqual(ev.t, exp['t'])
+            self.assertEqual(ev.ind, exp['ind'])
+            self.assertEqual(ev.second_ind, exp['second_ind'])
+            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
+            assert_allclose(ev.pos, exp['pos'])
+            assert_allclose(ev.new_v, exp['new_v'], atol=1e-14)
+            assert_allclose(ev.new_w, exp['new_w'], atol=1e-15)
+
+    def test_disc_disc_col_speed_rough_disc(self):
+        """
+        Tests disc-disc collisions for rough discs where each disc has a
+        different speed
+        """
+
+        s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
+        s.e_t = 1.0  # Set discs to being perfectly rough
+
+        s.add_disc([0.0, 0.0], [2.0, 0.0], 1.0, 1.0, I=0.5, w=1.0)
+        s.add_disc([10.0, 0.0], [-3.0, 0.0], 1.0, 1.0, I=0.5, w=1.0)
+
+        s.setup()
+        s.advance(2, 10.0, True)
+
+        # Check expected event properties
+        events = s.events
+
+        if events[0].ind == 1:
+            events[0], events[1] = events[1], events[0]
+        
+        expected = [
+            {
+                't': 1.6,
+                'ind': 0,
+                'second_ind': 1,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([3.2, 0.0]),
+                'new_v': np.array([-3.0, -2/3]),
+                'new_w': -1/3
+            },
+            {
+                't': 1.6,
+                'ind': 1,
+                'second_ind': 0,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([5.2, 0.0]),
+                'new_v': np.array([2.0, 2/3]),
+                'new_w': -1/3
+            }
+        ]
+
+        for ev, exp in zip(events, expected):
+            self.assertAlmostEqual(ev.t, exp['t'])
+            self.assertEqual(ev.ind, exp['ind'])
+            self.assertEqual(ev.second_ind, exp['second_ind'])
+            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
+            assert_allclose(ev.pos, exp['pos'])
+            assert_allclose(ev.new_v, exp['new_v'])
+            assert_allclose(ev.new_w, exp['new_w'])
+
+    def test_disc_disc_col_mass_rough_disc(self):
+        """
+        Tests disc-disc collisions for rough discs where each disc has a 
+        different mass
+        """
+
+        s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
+        s.e_t = 1.0  # Set discs to being perfectly rough
+
+        s.add_disc([0.0, 0.0], [1.0, 0.0], 2.0, 1.0, I=1.0, w=1.0)
+        s.add_disc([10.0, 0.0], [-1.0, 0.0], 3.0, 1.0, I=1.0, w=1.0)
+
+        s.setup()
+        s.advance(2, 10.0, True)
+
+        # Check expected event properties
+        events = s.events
+
+        if events[0].ind == 1:
+            events[0], events[1] = events[1], events[0]
+        
+        expected = [
+            {
+                't': 4.0,
+                'ind': 0,
+                'second_ind': 1,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([4.0, 0.0]),
+                'new_v': np.array([-1.4, -12 / 17]),
+                'new_w': -7 / 17
+            },
+            {
+                't': 4.0,
+                'ind': 1,
+                'second_ind': 0,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([6.0, 0.0]),
+                'new_v': np.array([0.6, 8 / 17]),
+                'new_w': -7 / 17
+            }
+        ]
+
+        for ev, exp in zip(events, expected):
+            self.assertAlmostEqual(ev.t, exp['t'])
+            self.assertEqual(ev.ind, exp['ind'])
+            self.assertEqual(ev.second_ind, exp['second_ind'])
+            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
+            assert_allclose(ev.pos, exp['pos'])
+            assert_allclose(ev.new_v, exp['new_v'])
+            assert_allclose(ev.new_w, exp['new_w'])
+    
+    def test_disc_disc_col_radii_rough_disc(self):
+        """
+        Tests disc-disc collisions for rough discs where each disc has a 
+        different radius
+        """
+
+        s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
+        s.e_t = 1.0  # Set discs to being perfectly rough
+
+        s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 2.0, I=1.0, w=1.0)
+        s.add_disc([10.0, 0.0], [-1.0, 0.0], 1.0, 3.0, I=1.0, w=1.0)
+
+        s.setup()
+        s.advance(2, 10.0, True)
+
+        # Check expected event properties
+        events = s.events
+
+        if events[0].ind == 1:
+            events[0], events[1] = events[1], events[0]
+        
+        expected = [
+            {
+                't': 2.5,
+                'ind': 0,
+                'second_ind': 1,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([2.5, 0.0]),
+                'new_v': np.array([-1.0, -2 / 3]),
+                'new_w': -1 / 3
+            },
+            {
+                't': 2.5,
+                'ind': 1,
+                'second_ind': 0,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([7.5, 0.0]),
+                'new_v': np.array([1.0, 2 / 3]),
+                'new_w': -1.0
+            }
+        ]
+
+        for ev, exp in zip(events, expected):
+            self.assertAlmostEqual(ev.t, exp['t'])
+            self.assertEqual(ev.ind, exp['ind'])
+            self.assertEqual(ev.second_ind, exp['second_ind'])
+            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
+            assert_allclose(ev.pos, exp['pos'])
+            assert_allclose(ev.new_v, exp['new_v'])
+            assert_allclose(ev.new_w, exp['new_w'])
+    
+    def test_disc_disc_col_moment_of_inertia_rough_disc(self):
+        """
+        Tests disc-disc collisions for rough discs where each disc has a 
+        different moment of inertia
+        """
+
+        s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
+        s.e_t = 1.0  # Set discs to being perfectly rough
+
+        s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 1.0, I=0.1, w=1.0)
+        s.add_disc([10.0, 0.0], [-1.0, 0.0], 1.0, 1.0, I=0.2, w=1.0)
+
+        s.setup()
+        s.advance(2, 10.0, True)
+
+        # Check expected event properties
+        events = s.events
+
+        if events[0].ind == 1:
+            events[0], events[1] = events[1], events[0]
+        
+        expected = [
+            {
+                't': 4.0,
+                'ind': 0,
+                'second_ind': 1,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([4.0, 0.0]),
+                'new_v': np.array([-1.0, -4 / 17]),
+                'new_w': -23 / 17
+            },
+            {
+                't': 4.0,
+                'ind': 1,
+                'second_ind': 0,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([6.0, 0.0]),
+                'new_v': np.array([1.0, 4 / 17]),
+                'new_w': -3 / 17
+            }
+        ]
+
+        for ev, exp in zip(events, expected):
+            self.assertAlmostEqual(ev.t, exp['t'])
+            self.assertEqual(ev.ind, exp['ind'])
+            self.assertEqual(ev.second_ind, exp['second_ind'])
+            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
+            assert_allclose(ev.pos, exp['pos'])
+            assert_allclose(ev.new_v, exp['new_v'])
+            assert_allclose(ev.new_w, exp['new_w'])
+    
+    def test_disc_disc_col_angular_velocity_rough_disc(self):
+        """
+        Tests disc-disc collisions for rough discs where each disc has a 
+        different angular velocity
+        """
+
+        s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
+        s.e_t = 1.0  # Set discs to being perfectly rough
+
+        s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 1.0, I=0.5, w=2.0)
+        s.add_disc([10.0, 0.0], [-1.0, 0.0], 1.0, 1.0, I=0.5, w=3.0)
+
+        s.setup()
+        s.advance(2, 10.0, True)
+
+        # Check expected event properties
+        events = s.events
+
+        if events[0].ind == 1:
+            events[0], events[1] = events[1], events[0]
+        
+        expected = [
+            {
+                't': 4.0,
+                'ind': 0,
+                'second_ind': 1,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([4.0, 0.0]),
+                'new_v': np.array([-1.0, -5/3]),
+                'new_w': -4/3
+            },
+            {
+                't': 4.0,
+                'ind': 1,
+                'second_ind': 0,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([6.0, 0.0]),
+                'new_v': np.array([1.0, 5/3]),
+                'new_w': -1/3
+            }
+        ]
+
+        for ev, exp in zip(events, expected):
+            self.assertAlmostEqual(ev.t, exp['t'])
+            self.assertEqual(ev.ind, exp['ind'])
+            self.assertEqual(ev.second_ind, exp['second_ind'])
+            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
+            assert_allclose(ev.pos, exp['pos'])
+            assert_allclose(ev.new_v, exp['new_v'])
+            assert_allclose(ev.new_w, exp['new_w'])
+    
+    def test_KE_conservation_rough_disc(self):
+        """
+        Tests kinetic energy is approximately conserved during a 
+        test simulation involving rough discs
+        """
+        
+        sim = create_20_disc_sim(1, 1, e_t=1.0)  # Set discs to being perfectly rough
+
+        s = sim['s']
+
+        initial_state = s.initial_state
+
+        initial_KE = total_KE(initial_state['m'], initial_state['v'], initial_state['I'], initial_state['w'])
+
+        for c_state in s.replay_by_time(0.1):
+            m, v = c_state['m'], c_state['v']
+            I, w = c_state['I'], c_state['w']
+
+            current_KE = total_KE(m, v, I, w)
+
+            self.assertAlmostEqual(current_KE, initial_KE)
+
+    ####################################################################
+    # Other tests
+    ####################################################################
     def test_out_of_bounds(self):
         """
         Tests discs don't go out of bounds during a test simulation
         """
 
-        sim = create_20_disc_sim(1, 1)
+        sim = create_20_disc_sim(1, 1, e_t=-1.0)  # Use smooth discs
 
         s = sim['s']
         box_bottom_left, box_top_right = sim['box']
@@ -436,7 +964,7 @@ class Test_PySim(unittest.TestCase):
         Tests discs don't overlap during a test simulation, no sectoring used
         """
 
-        sim = create_20_disc_sim(1, 1)  # No sectoring used
+        sim = create_20_disc_sim(1, 1, e_t=-1.0)  # No sectoring used, smooth discs
         s = sim['s']
 
         R = s.initial_state['R']
@@ -457,7 +985,7 @@ class Test_PySim(unittest.TestCase):
         Tests discs don't overlap during a test simulation, sectoring used
         """
 
-        sim = create_20_disc_sim(9, 9)  # sectoring used
+        sim = create_20_disc_sim(9, 9, e_t=-1.0)  # sectoring used, smooth discs used
         s = sim['s']
 
         R = s.initial_state['R']
@@ -613,7 +1141,39 @@ class Test_PySim(unittest.TestCase):
 
         with self.assertRaises(ValueError) as _:
             s.add_disc(pos, v, m, 0.6)
+    
+    def test_reject_adding_disc_invalid_moment_of_inerita(self):
+        """
+        Tests add_disc() rejects attempting to add a disc with a moment of 
+        inertia that is negative/zero or is larger than m*R**2/2
+        Expected that it raises a ValueError
+        """
 
+        L = 10.0  # Width/height of simulation box
+
+        bottom_left = [0.0, 0.0]
+        top_right = [L, L]
+
+        # Disc properties, max moment of inertia is m*R**2/2 = 9
+        pos = [L/2, L/2]
+        v = [0.0, 0.0]
+        m = 2.0
+        R = 3.0
+
+        s = bl.PySim(bottom_left, top_right, 1, 1)
+
+        with self.assertRaises(ValueError) as _:  # negative I
+            s.add_disc(pos, v, m, R, I=-1.0)
+
+        with self.assertRaises(ValueError) as _:  # Zero I
+            s.add_disc(pos, v, m, R, I=0.0)
+        
+        with self.assertRaises(ValueError) as _:  # Too large I
+            s.add_disc(pos, v, m, R, I=m*R**2)
+
+        # This should be allowed
+        s.add_disc(pos, v, m, R, I=m*R**2 / 4)
+        
     def test_reject_invalid_bounds(self):
         """
         Tests constructor for PySim rejects attempting to create a simulation 
@@ -772,7 +1332,7 @@ class Test_PySim(unittest.TestCase):
     def test_e_n_allowed_values(self):
         """Tests PySim.e_n rejects values outside 0.0 <= e_n <= 1.0"""
 
-        sim = create_20_disc_sim(n_sector_x=1, n_sector_y=1)['s']
+        sim = bl.PySim(np.array([0.0, 0.0]), np.array([10.0, 10.0]))
         
         # All these values should be allowed
         sim.e_n = 1.0
@@ -789,7 +1349,7 @@ class Test_PySim(unittest.TestCase):
     def test_e_t_allowed_values(self):
         """Tests PySim.e_t rejects values outside -1.0 <= e_t <= 1.0"""
 
-        sim = create_20_disc_sim(n_sector_x=1, n_sector_y=1)['s']
+        sim = bl.PySim(np.array([0.0, 0.0]), np.array([10.0, 10.0]))
         
         # All these values should be allowed
         sim.e_t = 1.0

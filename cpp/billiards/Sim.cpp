@@ -148,7 +148,7 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 				}
 				else  // Collision with wall first
 				{
-					Sim::disc_wall_col(state_1, walls[k]);
+					Sim::disc_wall_col(initial_state[i], state_1, walls[k]);
 
 					state_1.second_ind = k;
 					state_1.disc_wall_col = Collision_Type::Disc_Wall;
@@ -203,6 +203,7 @@ void Sim::setup()
 		elem[0].t = 0.0;
 		elem[0].pos = disc.r;
 		elem[0].new_v = disc.v;
+		elem[0].new_w = disc.w;
 		elem[0].ind = ind;
 		elem[0].second_ind = std::numeric_limits<size_t>::max();
 		disc.sector_ID = compute_sector_ID(disc.r);
@@ -214,7 +215,7 @@ void Sim::setup()
 	}
 }
 
-void Sim::add_disc(const Vec2D& pos, const Vec2D& v, double m, double R)
+void Sim::add_disc(const Vec2D& pos, const Vec2D& v, double w, double m, double R, double I)
 {
 	// Check disc is within simulation bounds
 	double left, right, top, bottom;
@@ -244,11 +245,18 @@ void Sim::add_disc(const Vec2D& pos, const Vec2D& v, double m, double R)
 	if (2.0 * R >= sector_width || 2.0*R >= sector_height)
 		throw std::invalid_argument("Can't add disc with radius greater than or equal to sector width/height");
 
+	// check moment of inertia is greater than zero and not larger than maximum M*R^2 / 2
+	if (I <= 0.0)
+		throw std::invalid_argument("Can't add disc with moment of inertia less than or equal to zero");
+	else if (I > m*R*R/2.0)
+		throw std::invalid_argument("Can't add disc with moment of inertia larger than (m * R^2) / 2");
+	
+
 	size_t sector_ID{compute_sector_ID(pos)};
 
 	sector_entires.at(sector_ID).push_back(initial_state.size());
 
-	initial_state.emplace_back(pos, v, m, R, sector_ID);
+	initial_state.emplace_back(pos, v, w, m, R, I, sector_ID);
 }
 
 double Sim::get_e_n()
@@ -276,8 +284,6 @@ void Sim::set_e_t(double new_e_t)
 
 	e_t = new_e_t;
 }
-
-
 
 double Sim::get_time(size_t disc_ind)
 {
@@ -675,31 +681,80 @@ double Sim::test_disc_boundary_col(const Event& e, const Wall& w)
 	return dt >= 0.0 ? e.t + dt : infinity;
 }
 
-void Sim::disc_wall_col(Event &e,  const Wall & w)
+void Sim::disc_wall_col(const Disc& d, Event& e, const Wall& w)
 {
-	Vec2D dv{ e.new_v - e.new_v.dot(w.tangent)*w.tangent };
+	// Disc is at point of collision
+	// create a unit vector normal to the wall, then make sure it points in the direction
+	// of disc centre -> point of collision on wall
+	Vec2D sigma_12{ -w.tangent[1], w.tangent[0] };
 
-	e.new_v -= 2 * dv;
+	if (sigma_12.dot(e.pos - w.start) > 0.0)
+		sigma_12 = -sigma_12;
+
+	// Unit vector tangent to disc 1 at point of collision
+	// oriented so omega cross sigma_ij can be comupted as
+	// omega (scalar) * tang_vec
+	Vec2D tang_vec{ -sigma_12[1], sigma_12[0] };
+
+	// Relative velocity of surfaces of discs at point of contact
+	Vec2D g_12{ e.new_v + (d.R * e.new_w) * tang_vec };
+
+	Vec2D Q;  // Impulse disc 1 recieves
+
+	Q = -((1 + e_n) * d.m * g_12.dot(sigma_12)) * sigma_12;
+
+	// part of the coefficient of second term of Q involving masses, moment of inertia etc.
+	double m_i_expr;
+
+	m_i_expr = 1 / d.m + d.R * d.R / d.I;
+
+	Q -= ((1 + e_t) / m_i_expr) * (g_12 - g_12.dot(sigma_12) * sigma_12);
+
+	// Now update velocities of particles
+	e.new_v += Q / d.m;
+
+	// And update the angular velocities
+	e.new_w += (d.R / d.I) * (sigma_12[0] * Q[1] - sigma_12[1] * Q[0]);
 }
 
 void Sim::disc_disc_col(Disc & d1, Disc & d2, Event& e1, Event &e2)
 {
-	Vec2D du{ e2.new_v - e1.new_v };
 	Vec2D dr{ e2.pos - e1.pos };
-	double dr_mag{ d1.R + d2.R };
+	Vec2D sigma_12{ dr / dr.mag() };
 
-	double coeff{ 2 * du.dot(dr) / ((d1.m + d2.m)*dr_mag * dr_mag) };
+	// Unit vector tangent to disc 1 at point of collision
+	// oriented so omega cross sigma_ij can be comupted as
+	// omega (scalar) * tang_vec
+	Vec2D tang_vec{ -sigma_12[1], sigma_12[0] };
 
-	Vec2D dv{ coeff * dr };
+	// Relative velocity of surfaces of discs at point of contact
+	Vec2D g_12{ e1.new_v - e2.new_v + (d1.R * e1.new_w + d2.R * e2.new_w) * tang_vec };
 
-	e1.new_v += d2.m*dv;
-	e2.new_v -= d1.m*dv;
+	Vec2D Q;  // Impulse disc 1 recieves
+
+	Q = -((1 + e_n) * d1.m * d2.m / (d1.m + d2.m) * g_12.dot(sigma_12)) * sigma_12;
+
+	// part of the coefficient of second term of Q involving masses, moment of inertia etc.
+	double m_i_expr;
+
+	m_i_expr = (d1.m + d2.m) / (d1.m * d2.m) + d1.R * d1.R / d1.I + d2.R * d2.R / d2.I;
+
+	Q -= ((1 + e_t) / m_i_expr) * (g_12 - g_12.dot(sigma_12) * sigma_12);
+
+	// Now update velocities of particles
+	e1.new_v += Q / d1.m;
+	e2.new_v -= Q / d2.m;
+
+	// And update the angular velocities
+	e1.new_w += (d1.R / d1.I) * (sigma_12[0] * Q[1] - sigma_12[1] * Q[0]);
+	e2.new_w += (d2.R / d2.I) * (sigma_12[0] * Q[1] - sigma_12[1] * Q[0]);
 }
 
 void Sim::advance(const Event &old_e, Event &new_e, double t)
 {
 	new_e.pos = old_e.pos + (t - old_e.t)*old_e.new_v;
 	new_e.new_v = old_e.new_v;
+	new_e.new_w = old_e.new_w;
 }
 
 size_t Sim::compute_sector_ID(const Vec2D& pos)

@@ -77,6 +77,30 @@ cdef _get_state_v(vector[Disc]& state):
 
     return arr
 
+cdef _get_state_w(vector[Disc]& state):
+    """
+    Returns numpy array containing the angular velocity of every disc in state.
+    
+    Parameters
+    ----------
+    state : vector[Disc]&
+        The state vector containing N discs.
+
+    Returns
+    -------
+    numpy.ndarray
+        A numpy array of shape (N,)
+    """
+    
+    cdef size_t n_discs = state.size()
+
+    arr = np.empty((n_discs, ), dtype=np.float64)
+
+    for d_ind in range(0, n_discs):
+        arr[d_ind] = state[d_ind].w
+
+    return arr
+
 cdef _get_state_m(vector[Disc]& state):
     """
     Returns numpy array containing the mass of every disc in state.
@@ -125,6 +149,29 @@ cdef _get_state_R(vector[Disc]& state):
 
     return arr
 
+cdef _get_state_I(vector[Disc]& state):
+    """
+    Returns numpy array containing the moment of inertia of every disc in state.
+    
+    Parameters
+    ----------
+    state : vector[Disc]&
+        The state vector containing N discs.
+
+    Returns
+    -------
+    numpy.ndarray
+        A numpy array of shape (N,)
+    """
+    
+    cdef size_t n_discs = state.size()
+
+    arr = np.empty((n_discs, ), dtype=np.float64)
+
+    for d_ind in range(0, n_discs):
+        arr[d_ind] = state[d_ind].I
+
+    return arr
 
 # class PyEvent
 
@@ -303,6 +350,24 @@ cdef class PyEvent():
             n[i] = self._sim.s.events[self._e_ind].new_v[i]
 
         return n
+    
+    @property
+    def new_w(self):
+        """
+        New angular velocity of disc after collision
+        
+        Parameters
+        ----------
+        None.
+
+        Returns
+        -------
+        float
+            Returns the new angular velocity of the disc
+            
+        """
+
+        return self._sim.s.events[self._e_ind].new_w
 
 # class PySim
 
@@ -486,7 +551,7 @@ cdef class PySim():
         self.add_wall([right, top], [right, bottom])
         self.add_wall([right, bottom], [left, bottom])
 
-    def add_disc(self, r, v, double m, double R):
+    def add_disc(self, r, v, double m, double R, I=None, w=0.0):
         """
         Add a disc to the simulation with initial position r, velocity v, mass m
         and radius R.
@@ -503,14 +568,22 @@ cdef class PySim():
             The mass of the disc.
         R : float
             The radius of the disc.
+        I : float
+            The moment of inertia of the disc. If set to None it will be 
+            calculated assuming the disc is uniform, i.e. (m*R**2) / 2, The 
+            default is None.
+        w : float
+            The angular velocity of the disc. The default is zero.
 
         Raises
         ------
         ValueError
             Raised if 
                 - disc is not within the bounds of the simulation
-                - mass/radius of disc are less than or equal to zero
+                - mass/radius/moment of inertia of disc are less than or equal 
+                  to zero
                 - disc is larger than a sector in the simulation
+                - moment of inertia is larger than maximum physical
 
         Returns
         -------
@@ -521,7 +594,9 @@ cdef class PySim():
         cdef Vec2D v_r = Vec2D(r[0], r[1])
         cdef Vec2D v_v = Vec2D(v[0], v[1])
 
-        self.s.add_disc(v_r, v_v, m, R)
+        cdef double _I = m*R**2 / 2.0 if I is None else I 
+
+        self.s.add_disc(v_r, v_v, w, m, R, _I)
 
     def add_random_discs(self, bottom_left, top_right, N_discs, m, R, v=None, kB_T=None,
                          pos_allocation='random'):
@@ -751,16 +826,20 @@ cdef class PySim():
             correspond to:
             - 'r' - position
             - 'v' - velocity
+            - 'w' - angular velocity
             - 'm' - mass
             - 'R' - radius
+            - 'I' - moment of inertia
         """
 
         state_dict = {}
 
         state_dict['r'] = _get_state_pos(self.s.initial_state)
         state_dict['v'] = _get_state_v(self.s.initial_state)
+        state_dict['w'] = _get_state_w(self.s.initial_state)
         state_dict['m'] = _get_state_m(self.s.initial_state)
         state_dict['R'] = _get_state_R(self.s.initial_state)
+        state_dict['I'] = _get_state_I(self.s.initial_state)
 
         return state_dict
     
@@ -781,18 +860,22 @@ cdef class PySim():
             correspond to:
             - 'r' - position
             - 'v' - velocity
+            - 'w' - angular velocity
             - 'm' - mass
             - 'R' - radius
+            - 'I' - moment of inertia
         """
 
         state_dict = {}
 
         state_dict['r'] = np.empty((self.s.initial_state.size(), 2), dtype=np.float64)
         state_dict['v'] = np.empty((self.s.initial_state.size(), 2), dtype=np.float64)
+        state_dict['w'] = np.empty((self.s.initial_state.size(), ), dtype=np.float64)
 
-        # Assume mass and radii of discs don't change during simulation
+        # Assume mass/radii/moment of inertia of discs don't change during simulation
         state_dict['m'] = _get_state_m(self.s.initial_state)
         state_dict['R'] = _get_state_R(self.s.initial_state)
+        state_dict['I'] = _get_state_I(self.s.initial_state)
 
         cdef Event cur_disc
 
@@ -803,6 +886,8 @@ cdef class PySim():
             for p_ind in range(0, 2):
                 state_dict['r'][d_ind, p_ind] = cur_disc.pos[p_ind]
                 state_dict['v'][d_ind, p_ind] = cur_disc.new_v[p_ind]
+                
+            state_dict['w'][d_ind] = cur_disc.new_w
 
         return state_dict
 
@@ -893,8 +978,10 @@ cdef class PySim():
             correspond to:
             - 'r' - position
             - 'v' - velocity
+            - 'w' - angular velocity
             - 'm' - mass
             - 'R' - radius
+            - 'I' - moment of inertia
         
         """
 
@@ -917,6 +1004,9 @@ cdef class PySim():
             # Update the colliding particle accordingly
             for ind in range(2):
                 current_state['v'][cur_disc][ind] = self.s.events[current_state_ind].new_v[ind]
+
+            # Update angular velocity
+            current_state['w'][cur_disc] = self.s.events[current_state_ind].new_w
 
             current_t = self.s.events[current_state_ind].t
 
@@ -942,8 +1032,10 @@ cdef class PySim():
             correspond to:
             - 'r' - position
             - 'v' - velocity
+            - 'w' - angular velocity
             - 'm' - mass
             - 'R' - radius
+            - 'I' - moment of inertia
         
         """
 
@@ -978,6 +1070,9 @@ cdef class PySim():
                     # Update the colliding particle accordingly
                     for ind in range(2):
                         current_state['v'][cur_disc][ind] = self.s.events[cur_event_ind].new_v[ind]
+
+                    # Update angular velocity
+                    current_state['w'][cur_disc] = self.s.events[cur_event_ind].new_w
                 else:
                     # advance to end of time interval and break
                     time_step = cur_period*dt - current_t
