@@ -29,7 +29,7 @@
 % differential operator
 \newcommand{\diff}{\textnormal{d}}
 
-\title{Modelling an Ideal Gas}
+\title{Billiards}
 \author{Tom Spencer}
 
 \begin{document}
@@ -37,7 +37,7 @@
 \maketitle
 
 \section{Introduction}
-We are interested in modelling a two dimensional ideal gas by modelling motions of individual particles that experience elastic collisions. We then hope to extract some interesting physics from such a simulation, such as showing speed distribution is a Maxwell-Boltzmann, computing the heat capacity and show it follows the ideal gas equation. We will first consider a model using non-rotating discs, though we may relax this later.
+We are interested in modelling a two dimensional gas by modelling motions of individual particles that experience elastic collisions. We then hope to extract some interesting physics from such a simulation, such as showing speed distribution is a Maxwell-Boltzmann, computing the heat capacity and show it follows the ideal gas equation. We will first consider a model using non-rotating discs, though we may relax this later.
 
 There are two approaches to such a simulation. A time driven approach is the most simplest, where we advance the simulation forward by a small time increment $\diff t$ and then check for and perform any collisions that took place during $\diff t$. This approach is simple to understand and implement but has some drawbacks, namely:
 \begin{itemize}
