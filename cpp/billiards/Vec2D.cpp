@@ -190,7 +190,7 @@ Vec2D operator+(const Vec2D& v)
 
 Vec2D operator-(const Vec2D& v)
 {
-	return Vec2D{ -v[0], v[1] };
+	return Vec2D{ -v[0], -v[1] };
 }
 
 std::ostream & operator<<(std::ostream & os, const Vec2D & v)
