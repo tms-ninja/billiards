@@ -29,7 +29,7 @@ def total_KE(m, v, I, w):
 
     return np.sum(ke) / 2.0
 
-def create_20_disc_sim(n_sector_x, n_sector_y, e_t):
+def create_20_disc_sim(n_sector_x, n_sector_y, e_t, g):
     """
     Creates and runs a simulation containing 20 discs for verification pruposes
     Can choose the number of sectors to be used in the simulation
@@ -43,6 +43,7 @@ def create_20_disc_sim(n_sector_x, n_sector_y, e_t):
 
     s = bl.PySim(box_bottom_left, box_top_right, n_sector_x, n_sector_y)
     s.e_t = e_t
+    s.g = g
 
     #s.add_box_walls(box_bottom_left, box_top_right)
     s.add_random_discs(np.array(box_bottom_left), np.array(box_top_right), 20, 1.0, 1.0, v=5.0)
@@ -53,6 +54,26 @@ def create_20_disc_sim(n_sector_x, n_sector_y, e_t):
     s.advance(1000, 100.0, True)
 
     return {'box': [box_bottom_left, box_top_right], 's': s}
+
+def test_overlapping(s):
+    """
+    Runs through a simulation s and tests if any discs overlap
+    Expects the simulation has already been performed, i.e., advance() has 
+    already been called on s
+    """
+
+    R = s.initial_state['R']
+
+    for c_state in s.replay_by_time(0.1):
+        pos = c_state['r']
+
+        for i in range(pos.shape[0]):
+
+            diff = pos[i+1:] - pos[i] 
+
+            dist = np.linalg.norm(diff, axis=1)
+
+            np.testing.assert_array_equal(R[i] + R[i+1:] <= dist, True)
 
 
 class Test_PySim(unittest.TestCase):
@@ -406,7 +427,7 @@ class Test_PySim(unittest.TestCase):
         test simulation involving smooth discs
         """
         
-        sim = create_20_disc_sim(1, 1, e_t=1.0)  # Set e_t for smooth discs
+        sim = create_20_disc_sim(1, 1, e_t=1.0, g=[0.0, 0.0])  # Set e_t for smooth discs
 
         s = sim['s']
 
@@ -916,7 +937,7 @@ class Test_PySim(unittest.TestCase):
         test simulation involving rough discs
         """
         
-        sim = create_20_disc_sim(1, 1, e_t=1.0)  # Set discs to being perfectly rough
+        sim = create_20_disc_sim(1, 1, e_t=1.0, g=[0.0, 0.0])  # Set discs to being perfectly rough
 
         s = sim['s']
 
@@ -933,14 +954,167 @@ class Test_PySim(unittest.TestCase):
             self.assertAlmostEqual(current_KE, initial_KE)
 
     ####################################################################
-    # Other tests
+    # Test collisions physics is corect for perfectly smooth discs
+    # Under gravity
     ####################################################################
-    def test_out_of_bounds(self):
+
+    def test_disc_wall_col_vertical_gravity(self):
+        """Tests smooth discs collide with vertical walls correctly under gravity"""
+
+        s = bl.PySim([0.0, 0.0], [10.0, 10.0])
+        s.g = [0.0, -1.0]
+
+        s.add_disc([3.0, 3.0], [-1.0, 1.0], 1.0, 1.0)
+
+        s.setup()
+
+        s.advance(1, 10.0, True)
+
+        # Check expected event properties
+        ev = s.events[0]
+
+        expected_pos = np.array([1.0, 3.0])
+        expected_v = np.array([1.0, -1.0])
+
+        self.assertAlmostEqual(ev.t, 2.0)
+        self.assertEqual(ev.ind, 0)
+        self.assertEqual(ev.second_ind, 0)
+        self.assertEqual(ev.disc_wall_col, bl.PyCol_Type.Disc_Wall)
+        assert_allclose(ev.pos, expected_pos)
+        assert_allclose(ev.new_v, expected_v)
+
+    def test_disc_wall_col_horizontal_gravity(self):
+        """Tests smooth discs collide with horizontal walls correctly under gravity"""
+
+        s = bl.PySim([0.0, 0.0], [10.0, 10.0])
+        s.g = [0.0, -1.0]
+
+        s.add_disc([3.0, 2.0], [1.0, 1.0], 1.0, 1.0)
+
+        s.setup()
+
+        s.advance(1, 10.0, True)
+
+        # Check expected event properties
+        ev = s.events[0]
+
+        expected_pos = np.array([4.0+np.sqrt(3.0), 1.0])
+        expected_v = np.array([1.0, np.sqrt(3.0)])
+
+        self.assertAlmostEqual(ev.t, 1+np.sqrt(3.0))
+        self.assertEqual(ev.ind, 0)
+        self.assertEqual(ev.second_ind, 3)
+        self.assertEqual(ev.disc_wall_col, bl.PyCol_Type.Disc_Wall)
+        assert_allclose(ev.pos, expected_pos)
+        assert_allclose(ev.new_v, expected_v)
+        
+    def test_disc_disc_col_gravity(self):
+        """Tests smooth disc-disc collisions under gravity"""
+
+        s = bl.PySim([-20.0, -20.0], [20.0, 20.0])
+        s.g = [0.0, -1.0]
+
+        s.add_disc([0.0, 0.0], [0.0, 0.0], 1.0, 1.0)
+        s.add_disc([4.0, -2.0], [-1.0, 1.0], 1.0, 1.0)
+
+        s.setup()
+        s.advance(2, 10.0, True)
+
+        # Check expected event properties
+        events = s.events
+
+        if events[0].ind == 1:
+            events[0], events[1] = events[1], events[0]
+        
+        expected = [
+            {
+                't': 2.0,
+                'ind': 0,
+                'second_ind': 1,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([0.0, -2.0]),
+                'new_v': np.array([-1.0, -2.0]),
+            },
+            {
+                't': 2.0,
+                'ind': 1,
+                'second_ind': 0,
+                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
+                'pos': np.array([2.0, -2.0]),
+                'new_v': np.array([0.0, -1.0]),
+            }
+        ]
+
+        for ev, exp in zip(events, expected):
+            self.assertAlmostEqual(ev.t, exp['t'])
+            self.assertEqual(ev.ind, exp['ind'])
+            self.assertEqual(ev.second_ind, exp['second_ind'])
+            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
+            assert_allclose(ev.pos, exp['pos'])
+            assert_allclose(ev.new_v, exp['new_v'])
+
+    def test_energy_conservation_gravity(self):
         """
-        Tests discs don't go out of bounds during a test simulation
+        Tests energy is approximately conserved during a 
+        test simulation involving smooth discs & gravity
+        """
+        
+        # Set e_t for smooth discs, gravity vertically downwards
+        g = [0.0, -1.0]
+
+        sim = create_20_disc_sim(1, 1, e_t=-1.0, g=g)  
+
+        s = sim['s']
+
+        initial_state = s.initial_state
+        m = initial_state['m']
+
+        initial_KE = total_KE(m, initial_state['v'], initial_state['I'], initial_state['w'])
+        initial_PE = np.sum(m*np.linalg.norm(g)*initial_state['r'][:, 1])
+
+        initial_energy = initial_KE + initial_PE
+
+        for c_state in s.replay_by_time(0.1):
+            m, v = c_state['m'], c_state['v']
+            I, w = c_state['I'], c_state['w']
+
+            y = c_state['r'][:, 1]  # altitude of discs
+
+            current_KE = total_KE(m, v, I, w)
+            current_PE = np.sum(m*np.linalg.norm(g)*c_state['r'][:, 1])
+
+            current_energy = current_KE + current_PE
+
+            self.assertAlmostEqual(current_energy, initial_energy)
+
+    def test_overlapping_gravity_no_sectoring(self):
+        """
+        Tests discs don't overlap during a test simulation, with gravity, 
+        no sectoring used
         """
 
-        sim = create_20_disc_sim(1, 1, e_t=-1.0)  # Use smooth discs
+        sim = create_20_disc_sim(1, 1, e_t=-1.0, g=[1.0, 1.0])  # No sectoring used, smooth discs
+        s = sim['s']
+
+        test_overlapping(s)
+    
+    def test_overlapping_gravity_sectoring(self):
+        """
+        Tests discs don't overlap during a test simulation, with gravity, 
+        sectoring used
+        """
+
+        sim = create_20_disc_sim(9, 9, e_t=-1.0, g=[1.0, 1.0])  # sectoring used, smooth discs used
+        s = sim['s']
+
+        test_overlapping(s)
+
+    def test_out_of_bounds_gravity(self):
+        """
+        Tests discs don't go out of bounds during a test simulation, gravity used
+        """
+
+        sim = create_20_disc_sim(1, 1, e_t=-1.0, g=[1.0, 1.0])  # Use smooth discs
 
         s = sim['s']
         box_bottom_left, box_top_right = sim['box']
@@ -959,47 +1133,54 @@ class Test_PySim(unittest.TestCase):
             np.testing.assert_array_equal(bottom + R <= pos[:, 1], True)
             np.testing.assert_array_equal(pos[:, 1] <= top - R, True)
 
-    def test_overlapping(self):
+    ####################################################################
+    # Other tests
+    ####################################################################
+    def test_out_of_bounds_no_gravity(self):
         """
-        Tests discs don't overlap during a test simulation, no sectoring used
+        Tests discs don't go out of bounds during a test simulation, no gravity
         """
 
-        sim = create_20_disc_sim(1, 1, e_t=-1.0)  # No sectoring used, smooth discs
+        sim = create_20_disc_sim(1, 1, e_t=-1.0, g=[0.0, 0.0])  # Use smooth discs
+
         s = sim['s']
+        box_bottom_left, box_top_right = sim['box']
+
+        left, bottom = box_bottom_left
+        right, top = box_top_right
 
         R = s.initial_state['R']
 
         for c_state in s.replay_by_time(0.1):
             pos = c_state['r']
 
-            for i in range(pos.shape[0]):
+            np.testing.assert_array_equal(left + R <= pos[:, 0], True)
+            np.testing.assert_array_equal(pos[:, 0] <= right - R, True)
 
-                diff = pos[i+1:] - pos[i] 
+            np.testing.assert_array_equal(bottom + R <= pos[:, 1], True)
+            np.testing.assert_array_equal(pos[:, 1] <= top - R, True)
 
-                dist = np.linalg.norm(diff, axis=1)
+    def test_overlapping_no_gravity_no_sectoring(self):
+        """
+        Tests discs don't overlap during a test simulation, no gravity, 
+        no sectoring used
+        """
 
-                np.testing.assert_array_equal(R[i] + R[i+1:] <= dist, True)
+        sim = create_20_disc_sim(1, 1, e_t=-1.0, g=[0.0, 0.0])  # No sectoring used, smooth discs
+        s = sim['s']
+
+        test_overlapping(s)
     
-    def test_overlapping_sectoring(self):
+    def test_overlapping_no_gravity_sectoring(self):
         """
-        Tests discs don't overlap during a test simulation, sectoring used
+        Tests discs don't overlap during a test simulation, no gravity, 
+        sectoring used
         """
 
-        sim = create_20_disc_sim(9, 9, e_t=-1.0)  # sectoring used, smooth discs used
+        sim = create_20_disc_sim(9, 9, e_t=-1.0, g=[0.0, 0.0])  # sectoring used, smooth discs used
         s = sim['s']
 
-        R = s.initial_state['R']
-
-        for c_state in s.replay_by_time(0.1):
-            pos = c_state['r']
-
-            for i in range(pos.shape[0]):
-
-                diff = pos[i+1:] - pos[i] 
-
-                dist = np.linalg.norm(diff, axis=1)
-
-                np.testing.assert_array_equal(R[i] + R[i+1:] <= dist, True)
+        test_overlapping(s)
 
     def test_get_bounds(self):
         """Tests get_sim_bounds property"""

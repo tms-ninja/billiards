@@ -957,6 +957,26 @@ cdef class PySim():
     def e_t(self, double new_e_t):
         self.s.set_e_t(new_e_t)
 
+    @property
+    def g(self):
+        """
+        Gets or sets the acceleration due to gravity each disc in the 
+        simulation experiences. Note it should not be altered after advance()
+        is called for the first time.
+        """
+
+        cdef Vec2D g_vec = self.s.get_g()
+        cdef np.ndarray g_np = np.array([g_vec[0], g_vec[1]])
+
+        return g_np
+    @g.setter
+    def g(self, new_g):
+        cdef np.ndarray _g = np.array(new_g, dtype=np.float64)
+
+        cdef Vec2D g_vec = Vec2D(_g[0], _g[1])
+
+        self.s.set_g(g_vec)
+
     # Generators for replaying the simulation
     def replay_by_event(self):
         """
@@ -999,7 +1019,9 @@ cdef class PySim():
             cur_disc = self.s.events[current_state_ind].ind
 
             # Advance all discs to time of collision
-            current_state['r'] += dt*current_state['v']
+            current_state['r'] += dt*current_state['v'] + self.g*(dt**2/2.0)
+            current_state['v'] += self.g*dt
+
 
             # Update the colliding particle accordingly
             for ind in range(2):
@@ -1063,7 +1085,8 @@ cdef class PySim():
                     time_step = self.s.events[cur_event_ind].t - current_t
                     current_t = self.s.events[cur_event_ind].t
 
-                    current_state['r'] += time_step*current_state['v']
+                    current_state['r'] += time_step*current_state['v'] + self.g*(time_step**2/2.0)
+                    current_state['v'] += self.g*time_step
 
                     cur_disc = self.s.events[cur_event_ind].ind
 
@@ -1078,7 +1101,8 @@ cdef class PySim():
                     time_step = cur_period*dt - current_t
                     current_t = cur_period*dt
 
-                    current_state['r'] += time_step*current_state['v']
+                    current_state['r'] += time_step*current_state['v'] + self.g*(time_step**2/2.0)
+                    current_state['v'] += self.g*time_step
 
                     break
 

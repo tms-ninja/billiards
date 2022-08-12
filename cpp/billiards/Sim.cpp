@@ -259,7 +259,7 @@ void Sim::add_disc(const Vec2D& pos, const Vec2D& v, double w, double m, double 
 	initial_state.emplace_back(pos, v, w, m, R, I, sector_ID);
 }
 
-double Sim::get_e_n()
+double Sim::get_e_n() const
 {
 	return e_n;
 }
@@ -272,7 +272,7 @@ void Sim::set_e_n(double new_e_n)
 	e_n = new_e_n;
 }
 
-double Sim::get_e_t()
+double Sim::get_e_t() const
 {
 	return e_t;
 }
@@ -285,12 +285,22 @@ void Sim::set_e_t(double new_e_t)
 	e_t = new_e_t;
 }
 
-double Sim::get_time(size_t disc_ind)
+Vec2D Sim::get_g() const
+{
+	return g;
+}
+
+void Sim::set_g(const Vec2D& new_g)
+{
+	g = new_g;
+}
+
+double Sim::get_time(size_t disc_ind) const
 {
 	return events_vec[disc_ind][new_vec[disc_ind]].t;
 }
 
-size_t Sim::get_min_time_ind()
+size_t Sim::get_min_time_ind() const
 {
 	// index of disc with smallest time is at root of heap pht
 	return pth[0];
@@ -424,7 +434,7 @@ void Sim::update_time(size_t disc_ind, double new_t)
 	}
 }
 
-std::pair<size_t, double> Sim::get_next_wall_coll(size_t disc_ind)
+std::pair<size_t, double> Sim::get_next_wall_coll(size_t disc_ind) const
 {
 	double current_best_t{ infinity };
 	double current_wall_t;
@@ -438,21 +448,28 @@ std::pair<size_t, double> Sim::get_next_wall_coll(size_t disc_ind)
 		2 <= x && x <= N-3 &&
 		2 <= y && y <= M-3
 		)
-		return { size_t_max, infinity };
+		{
+			return { size_t_max, infinity };
+		}
+		
 
 	// which walls we need to check
 	bool check_wall[] = {
 		x == 1,			// Left
-		y == M - 2,		// Right
-		x == N - 2,		// Top
+		y == M - 2,		// Top
+		x == N - 2,		// Right
 		y == 1			// Bottom
 	};
 
+
+	const Event& old_event{ events_vec[disc_ind][old_vec[disc_ind]] };
+
 	for (size_t wall_ind = 0; wall_ind < walls.size(); ++wall_ind)
 	{
-		if ((walls.size() == 4 && check_wall[wall_ind]) || walls.size() > 4)
+
+		if (((walls.size() == 4 && check_wall[wall_ind]) || walls.size() > 4))
 		{
-			current_wall_t = test_disc_wall_col(initial_state[disc_ind], events_vec[disc_ind][old_vec[disc_ind]], walls[wall_ind]);
+			current_wall_t = test_disc_wall_col(initial_state[disc_ind], old_event, walls[wall_ind]);
 
 			if (current_wall_t < current_best_t)
 			{
@@ -465,7 +482,7 @@ std::pair<size_t, double> Sim::get_next_wall_coll(size_t disc_ind)
 	return { best_wall, current_best_t };
 }
 
-std::pair<size_t, double> Sim::get_next_boundary_coll(size_t disc_ind)
+std::pair<size_t, double> Sim::get_next_boundary_coll(size_t disc_ind) const
 {
 	size_t sector_ID{ initial_state[disc_ind].sector_ID };
 
@@ -481,49 +498,29 @@ std::pair<size_t, double> Sim::get_next_boundary_coll(size_t disc_ind)
 		N + 1 + y + 1	// top
 	};
 
-
 	double current_best_t{ infinity };
 	double current_boundary_t;
 	size_t best_boundary{ size_t_max };
 
-	const Event& e1{ events_vec[disc_ind][old_vec[disc_ind]] };
+	const Event& old_event{ events_vec[disc_ind][old_vec[disc_ind]] };
 
 	for (size_t boundary_ind : boundary_indices)
 	{
-		// Ensure if the previous event was a boundary collision, we ignore the previously interacting boundary
-		if (!(e1.disc_wall_col == Collision_Type::Disc_Boundary && e1.second_ind == boundary_ind))
+		const Wall& boundary{ boundaries[boundary_ind] };
+
+		current_boundary_t = test_disc_boundary_col(old_event, boundary);
+
+		if (current_boundary_t < current_best_t)
 		{
-			Wall& boundary{ boundaries[boundary_ind] };
-
-			current_boundary_t = test_disc_boundary_col(events_vec[disc_ind][old_vec[disc_ind]], boundary);
-
-			if (current_boundary_t < current_best_t)
-			{
-				// Check we haven't already processed the collision and are currently on the boundary
-				// Do this for cases where a disc crosses two boundaries at the same time
-				Vec2D sector_centre{ bottom_left + Vec2D{ (x - 0.5) * sector_width, (y - 0.5) * sector_height } };
-
-				Vec2D diff{ sector_centre - boundary.start };
-
-				// normal vector to wall, points "towards" centre of sector disc is currently in
-				Vec2D n{ diff - diff.dot(boundary.tangent) * boundary.tangent };
-
-				// disc is entering current sector or travelling along its boundary, ignore boundary
-				if (e1.new_v.dot(n) >= 0)
-					continue;
-				else
-				{
-					current_best_t = current_boundary_t;
-					best_boundary = boundary_ind;
-				}
-			}
+			current_best_t = current_boundary_t;
+			best_boundary = boundary_ind;
 		}
 	}
 
 	return { best_boundary, current_best_t };
 }
 
-std::pair<size_t, double> Sim::get_next_disc_coll(size_t disc_ind)
+std::pair<size_t, double> Sim::get_next_disc_coll(size_t disc_ind) const
 {
 	double best_time{ infinity };
 	double p_ij;
@@ -611,23 +608,33 @@ double Sim::solve_quadratic(const Vec2D & alpha, const Vec2D & beta, const doubl
 	return std::min(x1, x2);
 }
 
-double Sim::test_disc_disc_col(const Disc & d1, const Disc & d2, const Event &e1, const Event &e2)
+double Sim::test_disc_disc_col(const Disc & d1, const Disc & d2, const Event &e1, const Event &e2) const
 {
 	Vec2D d1_pos{ e1.pos }, d2_pos{ e2.pos };
+	Vec2D d1_v{ e1.new_v }, d2_v {e2.new_v};
 	double start_time;  // most recent time of e1.t or e2.t
+	double dt;
 
 	if (e1.t > e2.t)
 	{
 		start_time = e1.t;
-		d2_pos += (e1.t - e2.t) * e2.new_v;
+
+		dt = e1.t - e2.t;
+
+		d2_pos = advance_position(e2.pos, e2.new_v, dt);
+		d2_v = advance_velocity(e2.pos, e2.new_v, dt);
 	}
 	else
 	{
 		start_time = e2.t;
-		d1_pos += (e2.t - e1.t) * e1.new_v;
+
+		dt = e2.t - e1.t;
+
+		d1_pos = advance_position(e1.pos, e1.new_v, dt);
+		d1_v = advance_velocity(e1.pos, e1.new_v, dt);
 	}
 
-	Vec2D alpha{ e1.new_v - e2.new_v };
+	Vec2D alpha{ d1_v - d2_v };
 	Vec2D beta{ d1_pos - d2_pos };
 	double R{ d1.R + d2.R };
 	double t;
@@ -641,43 +648,134 @@ double Sim::test_disc_disc_col(const Disc & d1, const Disc & d2, const Event &e1
 	return t >= 0.0 ? t + start_time : std::numeric_limits<double>::infinity();
 }
 
-double Sim::test_disc_wall_col(const Disc& d, const Event & e, const Wall & w)
+double Sim::test_disc_wall_col(const Disc& d, const Event & e, const Wall & w) const
 {	
-	Vec2D delta{ e.pos - w.start };
-	Vec2D alpha{ e.new_v - (e.new_v.dot(w.tangent)) * w.tangent };
-	Vec2D beta{ delta - (delta.dot(w.tangent)) * w.tangent };
-	
+	Vec2D n_vec{ -w.tangent[1], w.tangent[0] };  // create a unit vector normal to the wall
+	double dr_dot_n{ (w.start - e.pos).dot(n_vec) };
+
+	// Ensure n_vec point from the disc towards the wall
+	if (dr_dot_n < 0.0)
+	{
+		n_vec = -n_vec;
+		dr_dot_n = -dr_dot_n;
+	}
+
+	double g_dot_n{ g.dot(n_vec) };
+	double v_dot_n{ e.new_v.dot(n_vec) };
+	double dt;  // time to collision
+
+	if (g_dot_n == 0.0)
+	{
+		if (v_dot_n<=0.0)
+			dt = infinity;
+		else
+		{
+			dt = (dr_dot_n - d.R) / v_dot_n;
+		}
+	}
+	else
+	{
+		double disc;  // discriminant
+
+		disc = v_dot_n*v_dot_n + 2*g_dot_n*(dr_dot_n - d.R);
+
+		if (disc < 0.0)
+			dt = infinity;
+		else
+		{
+
+			// Travelling away from the wall and "downwards"
+			// No further collisions are possible
+			if (v_dot_n < 0.0 && g_dot_n < 0.0)
+			{
+				dt = infinity;
+			}
+			else
+				dt = (-v_dot_n + std::sqrt(disc)) / g_dot_n;
+		}
+	}
+
+	Vec2D disc_impact_pos{ advance_position(e.pos, e.new_v, dt) };
+
 	Vec2D diff{ w.end - w.start };
-	double s, t;
+	double s;  // Position along wall, should be 0.0 <= s <= 1.0
 
-	t = Sim::solve_quadratic(alpha, beta, d.R);
+	s = (disc_impact_pos - w.start).dot(w.end - w.start) / diff.mag2();
 
-	// If t is only slightly negative, it's likely a collision is meant to be
-	// occuring at precisely t=0.0, so set it equal to zero
-	if (t < 0.0 && t >= -5e-14)
-		t = 0.0;
-
-	s = (e.pos + e.new_v*t - w.start).dot(diff) / diff.mag2();
-
-	if (t < 0.0 || s < 0.0 || s > 1.0)
+	if (dt < 0.0 || s < 0.0 || s > 1.0)
 		return infinity;
 
-	return e.t + t;
+	return e.t + dt;
 }
 
-double Sim::test_disc_boundary_col(const Event& e, const Wall& w)
+double Sim::test_disc_boundary_col(const Event& e, const Wall& w) const
 {
-	// All boundaries are either horizontal or vertical
-	int coord_ind{ w.tangent[0] == 0.0 ? 0 : 1 };
+	Vec2D n_vec{ -w.tangent[1], w.tangent[0] };  // create a unit vector normal to the wall
 
-	if (e.new_v[coord_ind] == 0.0)
-		return infinity;
+	double dr_dot_n{ (w.start - e.pos).dot(n_vec) };
 
-	double dt;
+	// Ensure n_vec point from the disc towards the wall
+	if (dr_dot_n < 0.0)
+	{
+		n_vec = -n_vec;
+		dr_dot_n = -dr_dot_n;
+	}
 
-	dt = (w.start[coord_ind] - e.pos[coord_ind]) / e.new_v[coord_ind];
+	double g_dot_n{ g.dot(n_vec) };
+	double v_dot_n{ e.new_v.dot(n_vec) };
+	double dt;  // time to collision
 
-	// May need to be careful when ds is nearly zero
+	if (g_dot_n == 0.0)
+	{
+		// Ignore if disc isn't moving towards the boundary or leaving the sector
+		// Note for constant gravity, it doesn't matter that we don't advance e.new_v
+		// since we're only going to check the component of e.new_v perpendicular
+		// to the wall, which here is zero 
+		if (v_dot_n==0.0 || !(check_leaving_sector(e.new_v, w, e.ind)))
+			return infinity;
+		else
+		{
+			dt = dr_dot_n / v_dot_n;
+		}
+	}
+	else
+	{
+		double disc;  // discriminant
+
+		disc = v_dot_n*v_dot_n + 2*g_dot_n*dr_dot_n;
+
+		// If discriminant is less than zero, there is no collision so ignore it
+		// If it is equal to exactly zero there is no point processing the collision 
+		// as the disc is only momentarily on the boundary
+		if (disc <= 0.0)
+		{
+			return infinity;
+		}
+		else
+		{
+			// Need to be careful which solution we pick in case we are currently on the boundary
+			dt = (-v_dot_n + std::sqrt(disc)) / g_dot_n;
+
+			// velocity of disc at moment of collision
+			Vec2D collision_velocity{ advance_velocity(e.pos, e.new_v, dt) };
+			
+			// Check if we're leaving the sector the disk is currenty in at the boundary collision
+			// If not, we should check the second boundary collision 
+			if (!check_leaving_sector(collision_velocity, w, e.ind))
+			{
+				dt = (-v_dot_n - std::sqrt(disc)) / g_dot_n;
+
+				collision_velocity = advance_velocity(e.pos, e.new_v, dt);
+
+				if (!check_leaving_sector(collision_velocity, w, e.ind))
+				{
+					return infinity;
+				}
+			}
+		}
+	}
+
+	// May need to be careful if dt is near zero
 	return dt >= 0.0 ? e.t + dt : infinity;
 }
 
@@ -752,12 +850,25 @@ void Sim::disc_disc_col(Disc & d1, Disc & d2, Event& e1, Event &e2)
 
 void Sim::advance(const Event &old_e, Event &new_e, double t)
 {
-	new_e.pos = old_e.pos + (t - old_e.t)*old_e.new_v;
-	new_e.new_v = old_e.new_v;
+	double dt{ t - old_e.t };
+
+	new_e.pos = advance_position(old_e.pos, old_e.new_v, dt);
+	new_e.new_v = advance_velocity(old_e.pos, old_e.new_v, dt);
+
 	new_e.new_w = old_e.new_w;
 }
 
-size_t Sim::compute_sector_ID(const Vec2D& pos)
+Vec2D Sim::advance_position(const Vec2D& pos, const Vec2D& v, double dt) const
+{
+	return pos + dt*v + g*(dt*dt/2.0);
+}
+
+Vec2D Sim::advance_velocity(const Vec2D& pos, const Vec2D& v, double dt) const
+{
+	return v + dt*g;
+}
+
+size_t Sim::compute_sector_ID(const Vec2D& pos) const
 {
 	double left, bottom;
 
@@ -818,3 +929,20 @@ void Sim::update_sector_ID(const size_t disc_ind, const Event& old_event)
 	sector_entires[d.sector_ID].push_back(disc_ind);
 }
 
+bool Sim::check_leaving_sector(const Vec2D& v, const Wall& b, size_t disc_ind) const
+{
+	size_t sector_ID{ initial_state[disc_ind].sector_ID };
+
+	// coordinates of sector
+	size_t x{ sector_ID % N }, y{ sector_ID / N };
+
+	Vec2D sector_centre{ bottom_left + Vec2D{ (x - 0.5) * sector_width, (y - 0.5) * sector_height } };
+
+	Vec2D diff{ sector_centre - b.start };
+
+	// normal vector to boundary b, points "towards" centre of sector disc is currently in
+	Vec2D n{ diff - diff.dot(b.tangent) * b.tangent };
+
+	// disc is leaving sector if this is true
+	return v.dot(n) < 0.0;
+}

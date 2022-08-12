@@ -28,6 +28,7 @@
 
 % differential operator
 \newcommand{\diff}{\textnormal{d}}
+\DeclareMathOperator{\sign}{sign}
 
 \title{Billiards}
 \author{Tom Spencer}
@@ -60,12 +61,13 @@ We will implement the event-driven approach, first using an inefficient $\mathca
 
 \section{Theory}
 
-In the following, a particle starts at position $\vec{r}_0$ and travels with velocity $\vec{v}$. Its position is therefore given by,
+In the following, a particle starts at position $\vec{r}_0$ and travels with velocity $\vec{v}$ and in an external, uniform gravitational field. Its position is therefore given by,
 \begin{equation}
     \vec{r}_p(t)
     =
-    \vec{r}_0 + \vec{v}t.
+    \vec{r}_0 + \vec{v}t + \frac{1}{2} \vec{g} t^2,
 \end{equation}
+where $\vec{g}$ is the acceleration due to gravity.
 There are three types of collisions we must consider:
 \begin{itemize}
     \item Disc-disc collisions
@@ -96,53 +98,127 @@ and occurs at,
     =
     \frac{(\vec{r}_p(t) - \vec{A}) \cdot (\vec{B} - \vec{A})}{|\vec{B} - \vec{A}|^2}.
 \end{equation}
-Substituting in for $s$, we can rewrite Eq.~\ref{eq:wall_collision} as,
-\begin{equation}
-    (t\vec{\alpha} + \vec{\beta})^2 = R^2,
-\end{equation}
-with,
+Substituting in for $s$, we can express $\vec{r}_p(t) - \vec{r}_w(s)$ at the moment of collision as,
 \begin{align}
-    \vec{\alpha}
-    =
-    \vec{v} - (\vec{v} \cdot \vec{\gamma}) \vec{\gamma},
-    &&
-    \vec{\beta}
-    =
-    \vec{\delta} - (\vec{\delta} \cdot \vec{\gamma}) \vec{\gamma},
-    &&
-    \vec{\gamma} = \frac{\vec{B} - \vec{A}}{|\vec{B}-\vec{A}|},
-    &&
-    \vec{\delta} = \vec{r}_0 - \vec{A}.
+    \vec{r}_p(t) - \vec{r}_w(s)
+    &=
+    \left(
+        \vec{r}_0 - \vec{A}
+    \right)
+    -
+    \vec{\gamma}
+    \left(
+        \vec{r}_0 - \vec{A}
+    \right) \cdot \vec{\gamma}
+    +
+    t 
+    \left(
+        \vec{v}
+        -
+        (\vec{v} \cdot \vec{\gamma}) \vec{\gamma}
+    \right)
+    +
+    \frac{t^2}{2} 
+    \left(
+        \vec{g}
+        -
+        (\vec{g} \cdot \vec{\gamma}) \vec{\gamma}
+    \right), \\
+    &=
+    \vec{n} \cdot
+    \left(
+        \vec{r}_0 - \vec{A}
+    \right) \vec{n}
+    +
+    t 
+    (\vec{v} \cdot \vec{n}) \vec{n}
+    +
+    \frac{t^2}{2} 
+    (\vec{g} \cdot \vec{n}) \vec{n},
 \end{align}
-This has solutions,
+where $\vec{\gamma}$ is the unit vector along the wall from $\vec{A}$ to $\vec{B}$,
 \begin{equation}
-\label{eq:wall_collision_sol}
+    \vec{\gamma} = \frac{\vec{B} - \vec{A}}{|\vec{B}-\vec{A}|},
+\end{equation}
+and $\vec{n}$ is a unit vector normal to the wall and orthogonal to $\vec{\gamma}$. Substituting back into Eq~\ref{eq:wall_collision} and simplifying produces two quadratics in $t$,
+\begin{equation}
+    \frac{\vec{g} \cdot \vec{n}}{2} t^2
+    +
+    (\vec{v} \cdot \vec{n}) t
+    +
+    (\vec{r}_0 - \vec{A}) \cdot \vec{n}
+    \pm R
+    =
+    0.
+\end{equation}
+
+We first consider the case $\vec{g} \cdot \vec{n} = 0$. The solution for $t$ becomes,
+\begin{equation}
     t
     =
-    \frac{1}{\alpha^2}
-    \left(
-        -\vec{\alpha} \cdot \vec{\beta}
-        \pm
-        \sqrt{(\vec{\alpha} \cdot \vec{\beta})^2 + \alpha^2(R^2 - \beta^2)}
-    \right).
+    \frac{(\vec{A} - \vec{r}_0) \cdot \vec{n} \pm R}{\vec{v} \cdot \vec{n}}.
 \end{equation}
-We are only interested in collisions in the future and so are only interested in the negative root.
+If we choose $\vec{n}$ such that $(\vec{A} - \vec{r}_0) \cdot \vec{n} > 0$, then only the negative solution can possibly be physical as the disc collides with the wall on the same side the disc currently resides. We therefore find $t$ as,
+\begin{equation}
+\label{eq:wall_collision_sol_g_zero}
+    t
+    =
+    \frac{(\vec{A} - \vec{r}_0) \cdot \vec{n} - R}{\vec{v} \cdot \vec{n}}.
+\end{equation}
+We must be careful if a disc-wall collision has just occurred. As the disc will just be touching the wall, $t$ will be close to 0. This is easily resolved since the component of $\vec{v}$ perpendicular to the wall should point away from the wall after the collision. We therefore reject any collision where $\vec{v} \cdot \vec{n} \leq 0$.
+
+For the case $\vec{g} \cdot \vec{n} \neq 0$, applying the standard quadratic formula produces, 
+\begin{equation}
+    t
+    =
+    \frac{ - \vec{v} \cdot \vec{n} \pm \sqrt{ (\vec{v} \cdot \vec{n})^2 + 2(\vec{g} \cdot \vec{n})((\vec{A} - \vec{r}_0) \cdot \vec{n} \pm R)}}{\vec{g} \cdot \vec{n}}.
+\end{equation}
+Again, if we choose $\vec{n}$ such that $(\vec{A} - \vec{r}_0) \cdot \vec{n} > 0$ we need only consider the negative solution for the second $\pm$. By considering the sign of $\vec{g} \cdot \vec{n}$, we see for a collision in the future, we will almost always want the positive solution for the first sign,
+\begin{equation}
+\label{eq:wall_collision_sol_g_non_zero}
+    t
+    =
+    \frac{ - \vec{v} \cdot \vec{n} + \sqrt{ (\vec{v} \cdot \vec{n})^2 + 2(\vec{g} \cdot \vec{n})((\vec{A} - \vec{r}_0) \cdot \vec{n} \pm R)}}{\vec{g} \cdot \vec{n}}.
+\end{equation}
+The exception is when we have just processed a disc-wall collision. If we are `above' the wall ($\vec{g} \cdot \vec{n} > 0$) then Eq~\ref{eq:wall_collision_sol_g_non_zero} will produce the correct, later time of next collision since after the collision $\vec{v} \cdot \vec{n} < 0$.
+
+However, if we are `below' the wall ($\vec{g} \cdot \vec{n} < 0$) the disc will not collide with the wall again and Eq~\ref{eq:wall_collision_sol_g_non_zero} will give a spurious solution. We therefore set $t = \infty$ if both $\vec{v} \cdot \vec{n} < 0$ and $\vec{g} \cdot \vec{n} < 0$.
+
+Finally we note we have assumed the disc can only collide with the wall on the same side it currently resides. This is true for $\vec{g} \cdot \vec{n} = 0$ or if both of the wall's end points are outside the bounds of the simulation. In future we plan to allow walls with end points within the bounds of the simulation. When we do, we will need to consider both sides.
 
 \subsubsection{Testing for Disc-boundary collisions}
-Boundaries are used to split the simulation area into sectors in order to improve efficiency. They are straight lines and described in the same manner as walls. However, a disc-boundary collision occurs when the centre of a disc intersects with the boundary. We can find the collision time from Eq~\ref{eq:wall_collision_sol} by setting $R = 0$. A disc will collide with a boundary at time,
+Boundaries are used to split the simulation area into rectangular sectors in order to improve efficiency. They are straight lines and are described in the same manner as walls. However, a disc-boundary collision occurs when the centre of a disc intersects with the boundary. We can find the collision time from Eq~\ref{eq:wall_collision_sol_g_zero} if $\vec{g} \cdot \vec{n} = 0$ and Eq~\ref{eq:wall_collision_sol_g_non_zero} otherwise by setting $R = 0$. For $\vec{g} \cdot \vec{n} = 0$ we get,
 \begin{equation}
     t
     =
-    \frac{\gamma_x (r_{0y} - A_y) - \gamma_y (r_{0x} - A_x)}{v_x \gamma_y - v_y \gamma_x}.
+    \frac{(\vec{A} - \vec{r}_0) \cdot \vec{n}}{\vec{v} \cdot \vec{n}},
 \end{equation}
-$t$ must be positive for a collision to occur. Since the boundary endpoints are placed outside the simulation bounds, there is no need to ensure $0 \leq s \leq 1$. We may need to be careful if a disc is travelling along a sector boundary.
+and for $\vec{g} \cdot \vec{n} \neq 0$ we get,
+\begin{equation}
+\label{eq:disc_boundary_g_not_zero}
+    t
+    =
+    \frac{ - \vec{v} \cdot \vec{n} + \sqrt{ (\vec{v} \cdot \vec{n})^2 + 2(\vec{g} \cdot \vec{n})(\vec{A} - \vec{r}_0) \cdot \vec{n}}}{\vec{g} \cdot \vec{n}}.
+\end{equation}
+
+We must again be careful if we have just processed a disc-boundary collision and are currently sitting on the boundary. Finite numerical precision means the centre of the disc my not be exactly on the boundary but to either side. This could leave us stuck in a loop where we endlessly process the same boundary collision. Previously we solved this by not testing a boundary if the disc's last event was a collision with said boundary. However gravity makes this a little more complicated as a disc may interact with the same boundary sequentially. That is, it may interact with the same boundary twice with no intervening disc-disc or disc-wall events.
+
+We resolve this by noting if the disc-boundary collision has not been processed, the disc's velocity at the point of collision is such it is leaving the sector currently listed as its sector ID. By contrast, if the disc-boundary collision has been processed, it will be entering the sector listed as its sector ID. We do this by constructing a vector normal to the boundary and orientated such that it points `towards' the centre of the sector. A disc is leaving the sector it is in if this normal vector dotted with the disc's velocity at the time of collision is less than zero. 
+
+Therefore for the case $\vec{g} \cdot \vec{n} = 0$, we only need to process a disc-boundary collision if the disc is leaving its current sector. For the case $\vec{g} \cdot \vec{n} \neq 0$, we compute the disc's velocity at the solution give by Eq~\ref{eq:disc_boundary_g_not_zero} and check if the disc is leaving its current sector. If it is, this time is the time to the next boundary. Otherwise we perform the same computation for the second solution. If this solution also `not leaving', we return the time to next collision as infinity.
+
+We lastly note $t$ must be positive for a collision to occur and that since the boundary endpoints are placed outside the simulation bounds, there is no need to ensure $0 \leq s \leq 1$.
 
 \subsubsection{Testing for disc-disc collisions}
 Consider two discs $i, j$ with radii $R_i$, $R_j$ respectively. Denoting the position of each particle as $\vec{r}_i(t)$ and $\vec{r}_j(t)$, a collision occurs when,
 \begin{equation}
     (\vec{r}_i(t) - \vec{r}_j(t))^2 = (R_i + R_j)^2.
 \end{equation}
-This has the same solution as the disc-wall collision case (Eq.~\ref{eq:wall_collision_sol}) but with,
+We can rewrite this as,
+\begin{equation}
+    (t\vec{\alpha} + \vec{\beta})^2 = R^2,
+\end{equation}
+with,
 \begin{align}
     \vec{\alpha}
     =
@@ -154,10 +230,56 @@ This has the same solution as the disc-wall collision case (Eq.~\ref{eq:wall_col
     &&
     R = R_i + R_j.
 \end{align}
-Here $\vec{v}_i$, $\vec{v}_j$ and $\vec{r}_{i0}$, $\vec{r}_{j0}$ are the velocity and initial position of each respective disc. Again we are only interested in the negative solution and require $t>0$ for a future collision.
+Here $\vec{v}_i$, $\vec{v}_j$ and $\vec{r}_{i0}$, $\vec{r}_{j0}$ are the velocity and initial position of each respective disc. Applying the standard quadratic formula produces,
+\begin{equation}
+    t
+    =
+    \frac{1}{\alpha^2}
+    \left(
+        -\vec{\alpha} \cdot \vec{\beta}
+        \pm
+        \sqrt{(\vec{\alpha} \cdot \vec{\beta})^2 + \alpha^2(R^2 - \beta^2)}
+    \right).
+\end{equation}
+We may assume $t \geq 0$ for both solutions, if there are real solutions, since discs may not overlap. Of two solutions, the negative corresponds to the true collision, the positive to the case of one disc passing through the other and coming out the other side. We are therefore only interested in the negative of the two solutions.
+
+However, the above has issues when the discs are very close after performing a collision. We therefore use the approach described in \cite{numerical-recipes} to solve the quadratic $ax^2 + bx + c = 0$ as,
+\begin{align}
+    x_1 = \frac{q}{a}, 
+    &&
+    x_2 = \frac{c}{q},
+    &&
+    q = - \frac{1}{2}\left(
+        b
+        +
+        \sign(b)
+        \sqrt{b^2 - 4ac}
+    \right),
+\end{align}
+where we have,
+\begin{align}
+    a
+    =
+    \alpha^2,
+    &&
+    b
+    =
+    2 \vec{\alpha} \cdot \vec{\beta},
+    &&
+    c
+    =
+    \beta^2 - R^2.
+\end{align}
+Noting $\vec{\alpha} \cdot \vec{\beta}$ must be less than zero for a collision to occur, we find $t$ as,
+\begin{equation}
+    t
+    =
+    \frac{c}{-b + \sqrt{b^2-4ac}}.
+\end{equation}
+This only holds so long as $\vec{\alpha} \cdot \vec{\beta} < 0$, if it is not this will not produce the correct time and we should return $t = \infty$.
 
 \subsection{Processing collisions}
-We now discuss the implemented physics of disc-disc and disc-wall collisions. Note that no processing is required for disc-boundary collisions, at least in terms of the physics.
+We now discuss the implemented physics of disc-disc and disc-wall collisions. Note that no processing is required for disc-boundary collisions, at least in terms of the physics. Since we model instantaneous collisions, we neglect the effects of gravity.
 
 \subsubsection{Processing disc-disc collisions}
 We model the collision using constant coefficients of normal restitution, $\epsilon_\mathrm{n}$, and tangential restitution, $\epsilon_\mathrm{t}$, as described in \cite{Kremer-2014}. This approach defines the behaviour of the collision in terms of the relative velocity of the point on each disk that touches the other during the collision, $\vec{g}_{ij}$. The resulting states of discs $i$ and $j$ are then determined by,
@@ -358,7 +480,7 @@ where $\vec{g} = \vec{v} + R \vec{\omega} \times \hat{\vec{\sigma}}$ and $\hat{\
 \subsection{Insights from statistical physics}
 
 \section{Program structure}
-Function for solving collision detection i.e. Eq.~\ref{eq:wall_collision_sol}.
+Function for solving collision detection i.e. Eq.~\ref{eq:wall_collision_sol_g_zero} etc.
 
 \begin{itemize}
     \item A \texttt{Vec2D} class to represent a 2 dimensional vector.
