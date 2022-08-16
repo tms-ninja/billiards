@@ -571,13 +571,14 @@ std::pair<size_t, double> Sim::get_next_disc_coll(size_t disc_ind) const
 
 double Sim::solve_quadratic(const Vec2D & alpha, const Vec2D & beta, const double R)
 {
-	double a2{ alpha.mag2() };
+	// a_dot_b which is relative velocity of discs dotted with relative position of discs
+	double a_dot_b{ alpha.dot(beta) };
 
-	// When solving the quadratic, denominator is equal to zero
-	if (a2 == 0.0)
+	// Discs must have relative motion toward's each other
+	if (a_dot_b >= 0.0)
 		return std::numeric_limits<double>::infinity();
 
-	double a_dot_b{ alpha.dot(beta) };
+	double a2{ alpha.mag2() };
 	double b2{ beta.mag2() };
 
 	// coefficients in the quadratic, use algorithm from numerical recipes
@@ -594,18 +595,7 @@ double Sim::solve_quadratic(const Vec2D & alpha, const Vec2D & beta, const doubl
 	if (disc < 0.0)
 		return std::numeric_limits<double>::infinity();
 
-	double q;
-
-	// No division by two as cancelled with factors in b & discriminant
-	q = - (b + std::signbit(b)*std::sqrt(disc));
-
-	double x1, x2;
-
-	// Note a can't be zero as we have already checked a2 != 0.0
-	x1 = q / a;
-	x2 = c != 0.0 ? c/q : infinity;
-
-	return std::min(x1, x2);
+	return c / (-b + std::sqrt(disc));
 }
 
 double Sim::test_disc_disc_col(const Disc & d1, const Disc & d2, const Event &e1, const Event &e2) const
