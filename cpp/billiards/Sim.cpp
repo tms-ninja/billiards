@@ -62,6 +62,15 @@ Sim::Sim(Vec2D bottom_left, Vec2D top_right, size_t N, size_t M)
 
 		boundaries.push_back(Wall{ {left - sector_width, y_pos}, {right + sector_width, y_pos} });
 	}
+
+	// Cache centres of sectors to speed up check_leaving()
+	for (size_t sector_ID = 0; sector_ID < sector_entires.size(); ++sector_ID)
+	{
+		// coordinates of sector
+		size_t x{ sector_ID % this->N }, y{ sector_ID / this->N };
+
+		sector_centres.emplace_back(bottom_left + Vec2D{ (x - 0.5) * sector_width, (y - 0.5) * sector_height });
+	}
 }
 
 void Sim::advance(size_t max_iterations, double max_t, bool record_events)
@@ -923,10 +932,7 @@ bool Sim::check_leaving_sector(const Vec2D& v, const Wall& b, size_t disc_ind) c
 {
 	size_t sector_ID{ initial_state[disc_ind].sector_ID };
 
-	// coordinates of sector
-	size_t x{ sector_ID % N }, y{ sector_ID / N };
-
-	Vec2D sector_centre{ bottom_left + Vec2D{ (x - 0.5) * sector_width, (y - 0.5) * sector_height } };
+	Vec2D sector_centre{ sector_centres[sector_ID] };
 
 	Vec2D diff{ sector_centre - b.start };
 

@@ -96,6 +96,9 @@ private:
 	// Keeps track of which balls are in which sector
 	std::vector<std::vector<size_t>> sector_entires;
 
+	// Coordinates of the centre of each sector
+	std::vector<Vec2D> sector_centres;
+
 
 	// Binary heap that minimises time[disc_ind, new[disc_ind]], so 
 	// time[pth[disc_ind], new[pth[disc_ind]]] is minimum
