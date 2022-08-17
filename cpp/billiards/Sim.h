@@ -73,15 +73,21 @@ public:
 
 	// Getter/setter methods for coefficients of restitution
 
-	double get_e_n();
+	double get_e_n() const;
 	void set_e_n(double new_e_n);
 
-	double get_e_t();
+	double get_e_t() const;
 	void set_e_t(double new_e_t);
+
+	Vec2D get_g() const;
+	void set_g(const Vec2D& new_g);
 
 private:
 	double e_n{ 1.0 };   // Coefficient of normal restitution, default is perfectly elasic collisions
 	double e_t{ -1.0 };  // Coefficient of tangential restitution, default is perfectly smooth
+
+	// Acceleration due to gravity, default is zero
+	Vec2D g{ 0.0, 0.0 };
 
 	// First N+1 horizontal boundaries from left to right, then M+1 vertical bounraries from 
 	// bottom to top
@@ -89,6 +95,9 @@ private:
 
 	// Keeps track of which balls are in which sector
 	std::vector<std::vector<size_t>> sector_entires;
+
+	// Coordinates of the centre of each sector
+	std::vector<Vec2D> sector_centres;
 
 
 	// Binary heap that minimises time[disc_ind, new[disc_ind]], so 
@@ -103,10 +112,10 @@ private:
 	std::vector<size_t> pht;
 
 	// gets the current time for a disc, time[disc_ind, new[disc_ind]]
-	double get_time(size_t disc_ind);
+	double get_time(size_t disc_ind) const;
 
 	// Returns the index of of the disc whose time is smallest
-	size_t get_min_time_ind();
+	size_t get_min_time_ind() const;
 
 	// Adds the time corresponding to disc_ind in initial_state to the heap
 	void add_time_to_heap(size_t disc_ind);
@@ -120,14 +129,15 @@ private:
 	// Updates the time of disc ind with new_t
 	void update_time(size_t disc_ind, double new_t);
 
+
 	// Returns the Wall index which has the next collision for the disc and time
-	std::pair<size_t, double> get_next_wall_coll(size_t disc_ind);
+	std::pair<size_t, double> get_next_wall_coll(size_t disc_ind) const;
 
 	// Returns the boundary index which has the next collision for the disc and time
-	std::pair<size_t, double> get_next_boundary_coll(size_t disc_ind);
+	std::pair<size_t, double> get_next_boundary_coll(size_t disc_ind) const;
 
 	// Returns the disc index which has the next collision for the disc and time
-	std::pair<size_t, double> get_next_disc_coll(size_t disc_ind);
+	std::pair<size_t, double> get_next_disc_coll(size_t disc_ind) const;
 
 
 	// Used for solving the quadratic involving the alpha and beta vectors
@@ -136,16 +146,16 @@ private:
 	static double solve_quadratic(const Vec2D &alpha, const Vec2D &beta, const double R);
 
 	// Tests if two discs are going to collide, returns time of collision if they do, infinity otherwise
-	static double test_disc_disc_col(const Disc &d1, const Disc &d2, const Event &e1, const Event &e2);
+	double test_disc_disc_col(const Disc &d1, const Disc &d2, const Event &e1, const Event &e2) const;
 
 	// Tests if a disc is going to collide with a wall, returns time of collision if they do, infinity otherwise
 	// Differs from test_disc_boundary_col() as it tests for the interaction of the edge of the disc with the 
 	// wall rather than the centre
-	static double test_disc_wall_col(const Disc& d, const Event &e, const Wall &w);
+	double test_disc_wall_col(const Disc& d, const Event &e, const Wall &w) const;
 
 	// Tests if a disc is going to collide with a boundary. Differs from test_disc_wall_col() as it tests 
 	// for the interaction of the centre of the disc with the boundary rather than the edge
-	static double test_disc_boundary_col(const Event& e, const Wall& w);
+	double test_disc_boundary_col(const Event& e, const Wall& w) const;
 
 	// Performs a disc-wall collision
 	void disc_wall_col(const Disc& d, Event &e, const Wall &w);
@@ -154,15 +164,26 @@ private:
 	void disc_disc_col(Disc &d1, Disc &d2, Event& e1, Event &e2);
 
 	// Advances the disc to time t
-	static void advance(const Event &old_e, Event &new_e, double t);
+	void advance(const Event &old_e, Event &new_e, double t);
 
+	// Computes the position of a particle with initial position pos, velocity v after a time dt
+	Vec2D advance_position(const Vec2D& pos, const Vec2D& v, double dt) const;
 
+	// Computes the velocity of a particle with initial position pos, velocity v after a time dt
+	Vec2D advance_velocity(const Vec2D& pos, const Vec2D& v, double dt) const;
 
 	// Returns the sector ID of the sector the given position is in
-	size_t compute_sector_ID(const Vec2D& pos);
+	size_t compute_sector_ID(const Vec2D& pos) const;
 
 	// Updates the sector ID of disc with index disc_ind based on the old_event that has just been processed
 	// Intended to be used after swapping new and old in advance()
 	void update_sector_ID(const size_t disc_ind, const Event& old_event);
+
+	// Checks whether the disc is leaving the current sector listed as its sector_ID
+	// Returns true if it is leaving, false otherwise
+	// Used to help determine whether we have or haven't processed a boundary interaction
+	// when a disc is on/near a boundary
+	// v should be the velocity of the disc when it is at the boundary
+	bool check_leaving_sector(const Vec2D& v, const Wall& b, size_t disc_ind) const;
 };
 
