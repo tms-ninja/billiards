@@ -1350,7 +1350,7 @@ class Test_PySim(unittest.TestCase):
             s.add_disc(pos, v, m, R, I=0.0)
         
         with self.assertRaises(ValueError) as _:  # Too large I
-            s.add_disc(pos, v, m, R, I=m*R**2)
+            s.add_disc(pos, v, m, R, I=1.01*m*R**2)
 
         # This should be allowed
         s.add_disc(pos, v, m, R, I=m*R**2 / 4)

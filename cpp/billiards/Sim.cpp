@@ -254,10 +254,10 @@ void Sim::add_disc(const Vec2D& pos, const Vec2D& v, double w, double m, double 
 	if (2.0 * R >= sector_width || 2.0*R >= sector_height)
 		throw std::invalid_argument("Can't add disc with radius greater than or equal to sector width/height");
 
-	// check moment of inertia is greater than zero and not larger than maximum M*R^2 / 2
+	// check moment of inertia is greater than zero and not larger than maximum M*R^2
 	if (I <= 0.0)
 		throw std::invalid_argument("Can't add disc with moment of inertia less than or equal to zero");
-	else if (I > m*R*R/2.0)
+	else if (I > m*R*R)
 		throw std::invalid_argument("Can't add disc with moment of inertia larger than (m * R^2) / 2");
 	
 
