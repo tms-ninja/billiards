@@ -427,7 +427,7 @@ class Test_PySim(unittest.TestCase):
         test simulation involving smooth discs
         """
         
-        sim = create_20_disc_sim(1, 1, e_t=1.0, g=[0.0, 0.0])  # Set e_t for smooth discs
+        sim = create_20_disc_sim(1, 1, e_t=-1.0, g=[0.0, 0.0])  # Set e_t for smooth discs
 
         s = sim['s']
 
