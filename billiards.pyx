@@ -1065,14 +1065,26 @@ cdef class PySim():
 
         yield current_state
 
+        cdef double[:] g_view = self.g
+
         cdef size_t N_events = self.s.events.size()
+        cdef int N_discs = current_state['r'].shape[0]
         cdef size_t cur_event_ind = 0
-        cdef size_t cur_disc
-        cdef double current_t = 0.0
-        cdef double time_step
+        cdef size_t cur_disc_ind
 
         # Start time for the current period
         cdef int cur_period = 1
+
+        # current time each disc its current position, velocity etc. is valid for
+        cdef np.ndarray current_t = np.zeros(N_discs)
+        cdef double single_time_step        # time step used when advancing a single disc
+        cdef np.ndarray array_time_step     # time step used when advancing all discs
+
+        cdef double[:] current_t_view = current_t
+
+        cdef double[:, :] r_view = current_state['r']
+        cdef double[:, :] v_view = current_state['v']
+        cdef double[:] w_view = current_state['w']
 
         # The inner loop corresponds to advancing one event at a time, the 
         # outer loop corresponds to advancing by dt
@@ -1081,28 +1093,30 @@ cdef class PySim():
             while cur_event_ind < N_events:
                 # Next event is in the current period
                 if self.s.events[cur_event_ind].t <= cur_period*dt:
+
+                    cur_disc_ind = self.s.events[cur_event_ind].ind
+
                     # advance to next event
-                    time_step = self.s.events[cur_event_ind].t - current_t
-                    current_t = self.s.events[cur_event_ind].t
+                    single_time_step = self.s.events[cur_event_ind].t - current_t_view[cur_disc_ind]
+                    current_t_view[cur_disc_ind] = self.s.events[cur_event_ind].t
 
-                    current_state['r'] += time_step*current_state['v'] + self.g*(time_step**2/2.0)
-                    current_state['v'] += self.g*time_step
-
-                    cur_disc = self.s.events[cur_event_ind].ind
-
-                    # Update the colliding particle accordingly
+                    # Update disc position, velocity & angular velocity
                     for ind in range(2):
-                        current_state['v'][cur_disc][ind] = self.s.events[cur_event_ind].new_v[ind]
+                        r_view[cur_disc_ind, ind] += single_time_step*v_view[cur_disc_ind, ind] + g_view[ind]*(single_time_step**2)/2.0
 
-                    # Update angular velocity
-                    current_state['w'][cur_disc] = self.s.events[cur_event_ind].new_w
+                    for ind in range(2):
+                         v_view[cur_disc_ind, ind] = self.s.events[cur_event_ind].new_v[ind]
+
+                    w_view[cur_disc_ind] = self.s.events[cur_event_ind].new_w
                 else:
                     # advance to end of time interval and break
-                    time_step = cur_period*dt - current_t
-                    current_t = cur_period*dt
+                    array_time_step = (cur_period*dt - current_t)[:, np.newaxis]
+                    current_t[...] = cur_period*dt
 
-                    current_state['r'] += time_step*current_state['v'] + self.g*(time_step**2/2.0)
-                    current_state['v'] += self.g*time_step
+                    # Note: it seems better to use numpy here rather than cython
+                    # suspect it might be due to better SIMD vectorization, not sure
+                    current_state['r'] += array_time_step*current_state['v'] + (self.g/2.0)*array_time_step**2
+                    current_state['v'] += self.g*array_time_step
 
                     break
 
