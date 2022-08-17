@@ -22,13 +22,16 @@
 #include "billiards/Sim.h"
 
 // For testing performance improvements are actually improvements
-Sim setup_perf_test()
+Sim setup_perf_test(bool gravity)
 {
 	Sim s{ {0.0, 0.0}, {10.0, 10.0}, 10, 10 };
 
+	if (gravity)
+		s.set_g({ 0.0, -1.0 });
+
 	Vec2D pos, v;
 	double m{ 1.0 }, R{ 0.4 };
-	double I{ std::numeric_limits<double>::infinity() }, w{ 0.0 };
+	double I{ m*R*R / 2.0 }, w{ 0.0 };
 	double L{ 10.0 };  // width of box
 
 	// Add balls on a 10 by 10 grid
@@ -65,7 +68,7 @@ void run_perf_test(Sim s)
 int main()
 {
 	std::cout << "Started\n";
-	Sim s{ setup_perf_test() };
+	Sim s{ setup_perf_test(true) };
 
 	auto begin = std::chrono::steady_clock::now();
 
