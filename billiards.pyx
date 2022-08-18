@@ -719,64 +719,8 @@ cdef class PySim():
 
         if pos_allocation=='random':            
             pos = self._add_random_disc_random(N_discs, bottom_left, top_right, radius)
-
         elif pos_allocation=='grid':
-            # Small margin so discs won't be touching bounds of rquested box
-            _bottom_left = bottom_left + R*1.001
-            _top_right = top_right - R*1.001
-            
-            # require n_per_side**2 >= N _discs
-            n_per_side = 1 + math.isqrt(N_discs-1)
-
-            x_pos = np.linspace(_bottom_left[0], _top_right[0], n_per_side)
-            y_pos = np.linspace(_bottom_left[1], _top_right[1], n_per_side)
-
-            xx, yy = np.meshgrid(x_pos, y_pos)
-
-            # In general we expect n_per_side**2 > N_discs, so we randomly 
-            # choose which positions on the grid to use
-            possible_positions = np.column_stack((xx.ravel(), yy.ravel()))
-
-            attempt = 0
-            max_attempt = 10
-
-            while attempt < max_attempt:
-                # select the positions for this attempt
-                selected_indices = np.random.choice(possible_positions.shape[0], N_discs, replace=False)
-                pos[N_current_state:] = possible_positions[selected_indices]
-
-                overlapping_discs = False
-
-                # Now check there aren't any discs overlapping
-                if n_per_side > 1:
-                    dx, dy = x_pos[1] - x_pos[0], y_pos[1] - y_pos[0]
-
-                    max_R = np.max(radius)
-
-                    if dx > 2*max_R and dy > 2*max_R and N_current_state==0:
-                        # Guaranteed there are no overlapping discs
-                        break
-                    else:
-                        for d_ind in range(N_current_state, N_current_state + N_discs):
-                            d_pos = pos[d_ind]
-
-                            # Test for collisions
-                            for partner_ind in range(0, d_ind):
-                                if np.linalg.norm(d_pos - pos[partner_ind]) < radius[d_ind] + radius[partner_ind]:
-                                    overlapping_discs = True
-                                    break
-
-                            if overlapping_discs:
-                                break
-
-                # we've allocated positions to all discs without any overlapping
-                if not overlapping_discs:
-                    break
-
-                attempt += 1
-            else:
-                raise RuntimeError(f"Unable to place discs on grid after {max_attempt} attempts")
-                                
+            pos = self._add_random_disc_grid(N_discs, bottom_left, top_right, radius)
         else:
             raise ValueError(f"Unknown pos_allocation: {pos_allocation}. Allowed values are 'random' or 'grid'.")
 
@@ -818,6 +762,67 @@ cdef class PySim():
         
         return pos
 
+    def _add_random_disc_grid(self, N_discs, bottom_left, top_right, radius):
+        """Computes positions based on grid"""
+
+        N_current_state = self.current_state['m'].shape[0]
+
+        pos = np.empty((N_current_state + N_discs, 2), dtype=np.float64)
+        pos[:N_current_state] = self.current_state['r']
+
+        # Small margin so discs won't be touching bounds of requested box
+        R_max = np.max(radius[N_current_state:])
+        _bottom_left = bottom_left + R_max*1.001
+        _top_right = top_right - R_max*1.001
+        
+        # require n_per_side**2 >= N _discs
+        n_per_side = 1 + math.isqrt(N_discs-1)
+
+        x_pos = np.linspace(_bottom_left[0], _top_right[0], n_per_side)
+        y_pos = np.linspace(_bottom_left[1], _top_right[1], n_per_side)
+
+        xx, yy = np.meshgrid(x_pos, y_pos)
+
+        # In general we expect n_per_side**2 > N_discs, so we randomly 
+        # choose which positions on the grid to use
+        possible_positions = np.column_stack((xx.ravel(), yy.ravel()))
+
+        attempt = 0
+        max_attempt = 10
+
+        while attempt < max_attempt:
+            # select the positions for this attempt
+            selected_indices = np.random.choice(possible_positions.shape[0], N_discs, replace=False)
+            pos[N_current_state:] = possible_positions[selected_indices]
+
+            overlapping_discs = False
+
+            # Now check there aren't any discs overlapping
+            if n_per_side > 1:
+                dx, dy = x_pos[1] - x_pos[0], y_pos[1] - y_pos[0]
+
+                max_R = np.max(radius)
+
+                if dx > 2*max_R and dy > 2*max_R and N_current_state==0:
+                    # Guaranteed there are no overlapping discs
+                    break
+                else:
+                    for d_ind in range(N_current_state, N_current_state + N_discs):
+                        #d_pos = pos[d_ind]
+
+                        if not _test_collisions(pos[:d_ind+1], radius[:d_ind+1]):
+                            overlapping_discs = True
+                            break
+
+            # we've allocated positions to all discs without any overlapping
+            if not overlapping_discs:
+                break
+
+            attempt += 1
+        else:
+            raise RuntimeError(f"Unable to place discs on grid after {max_attempt} attempts")
+        
+        return pos
 
     # Properties
     @property
