@@ -757,8 +757,10 @@ cdef class PySim():
         _bottom_left = bottom_left 
         _top_right = top_right 
 
+        max_attempt = 20
+
         for d_ind in range(N_current_state, N_current_state + N_discs):
-            attempt = 10
+            attempt = max_attempt
 
             R = radius[d_ind]
             _bottom_left = bottom_left + R
@@ -776,7 +778,7 @@ cdef class PySim():
                 # Disc does have a collision, try again
                 attempt -= 1
             else:
-                raise RuntimeError(f"Unable to place disc {d_ind - N_current_state} after 10 attempts.")
+                raise RuntimeError(f"Unable to place disc {d_ind - N_current_state} after {max_attempt} attempts.")
         
         return pos
 
