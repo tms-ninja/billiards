@@ -702,30 +702,33 @@ cdef class PySim():
         pos[:N_current_state] = current_state['r']
 
         if pos_allocation=='random':
-            _bottom_left = bottom_left + R
-            _top_right = top_right - R
+            
+            pos = self._add_random_disc_random(N_discs, bottom_left, top_right, radius)
 
-            for d_ind in range(N_current_state, N_current_state + N_discs):
-                attempt = 10
+            # _bottom_left = bottom_left + R
+            # _top_right = top_right - R
 
-                while attempt > 0:
-                    d_pos = _bottom_left + (_top_right - _bottom_left) * np.random.random(2)
+            # for d_ind in range(N_current_state, N_current_state + N_discs):
+            #     attempt = 10
 
-                    disc_is_colliding = False
+            #     while attempt > 0:
+            #         d_pos = _bottom_left + (_top_right - _bottom_left) * np.random.random(2)
 
-                    # Test for collisions
-                    for i in range(0, d_ind):
-                        if np.linalg.norm(d_pos - pos[i]) < radius[d_ind] + radius[i]:
-                            disc_is_colliding = True
-                            break
-                    else:
-                        pos[d_ind] = d_pos
-                        break  # New disc has no collisions
+            #         disc_is_colliding = False
 
-                    # Disc does have a collision, try again
-                    attempt -= 1
-                else:
-                    raise RuntimeError(f"Unable to place disc {d_ind - N_current_state} after 10 attempts.")
+            #         # Test for collisions
+            #         for i in range(0, d_ind):
+            #             if np.linalg.norm(d_pos - pos[i]) < radius[d_ind] + radius[i]:
+            #                 disc_is_colliding = True
+            #                 break
+            #         else:
+            #             pos[d_ind] = d_pos
+            #             break  # New disc has no collisions
+
+            #         # Disc does have a collision, try again
+            #         attempt -= 1
+            #     else:
+            #         raise RuntimeError(f"Unable to place disc {d_ind - N_current_state} after 10 attempts.")
         elif pos_allocation=='grid':
             # Small margin so discs won't be touching bounds of rquested box
             _bottom_left = bottom_left + R*1.001
@@ -789,6 +792,42 @@ cdef class PySim():
         # Now add the discs to the simulation
         for ind in range(N_current_state, N_current_state + N_discs):
             self.add_disc(pos[ind], velocity[ind], mass[ind], radius[ind]) 
+
+    def _add_random_disc_random(self, N_discs, bottom_left, top_right, radius):
+        """Computes positions for new discs using 'random' method"""
+
+        N_current_state = self.current_state['m'].shape[0]
+
+        pos = np.empty((N_current_state + N_discs, 2), dtype=np.float64)
+        pos[:N_current_state] = self.current_state['r']
+
+        _bottom_left = bottom_left 
+        _top_right = top_right 
+
+        for d_ind in range(N_current_state, N_current_state + N_discs):
+            attempt = 10
+
+            R = radius[d_ind]
+            _bottom_left = bottom_left + R
+            _top_right = top_right - R
+
+            while attempt > 0:
+                d_pos = _bottom_left + (_top_right - _bottom_left) * np.random.random(2)
+
+                # Test for collisions
+                for i in range(0, d_ind):
+                    if np.linalg.norm(d_pos - pos[i]) < radius[d_ind] + radius[i]:
+                        break
+                else:
+                    pos[d_ind] = d_pos
+                    break  # New disc has no collisions
+
+                # Disc does have a collision, try again
+                attempt -= 1
+            else:
+                raise RuntimeError(f"Unable to place disc {d_ind - N_current_state} after 10 attempts.")
+        
+        return pos
 
 
     # Properties
