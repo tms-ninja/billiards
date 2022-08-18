@@ -180,11 +180,29 @@ def _test_collisions(pos, radii):
     Returns True if there are no collisions between discs
     """
 
+    if pos.shape[0]==1:
+        return True
+
     d_pos = pos[-1]
     R_disc = radii[-1]
 
-    for i in range(pos.shape[0] - 1):
-        if np.linalg.norm(d_pos - pos[i]) < R_disc + radii[i]:
+    # Use sweep and prune to reduce number of discs that need checking
+    # Sort discs by x position
+    pos_x = pos[:-1, 0]
+    sorted_args = np.argsort(pos_x)
+
+    max_closest_dist = R_disc + np.max(radii[:-1])
+
+    # left_ind includes the one we need to check
+    left_ind = np.searchsorted(pos_x, pos[-1, 0]-max_closest_dist, side='left', sorter=sorted_args)
+
+    # right_ind is 1 past what we need to check
+    right_ind = np.searchsorted(pos_x, pos[-1, 0]+max_closest_dist, side='right', sorter=sorted_args)
+
+    for i in range(left_ind, right_ind):
+        disc_to_check = sorted_args[i]
+
+        if np.linalg.norm(d_pos - pos[disc_to_check]) < R_disc + radii[disc_to_check]:
             return False
     
     return True
