@@ -184,7 +184,24 @@ cdef _get_state_I(vector[Disc]& state):
 cdef _test_collisions(np.ndarray pos, np.ndarray radii, double max_R=-1.0):
     """
     Tests for collisions between last position and all earlier positions
-    Returns True if there are no collisions between discs
+    Returns True if there are no collisions between discs.
+
+    Parameters
+    ----------
+    pos : np.ndarray
+        The positions of the centres of all discs. The position of the disc to
+        be tested should be at pos[-1]. Expected to have shape (N, 2).
+    radii : np.ndarray
+        The radii of the discs. The radius of the disc to be tested should be 
+        at radii[-1]. Expected to have shape (N, 2).
+    max_R : double, optional
+        The maximum radius any disc has. If not set or set to -1.0, 
+        _test_collision() will determine the maximum. The default it -1.0.
+
+    Returns
+    -------
+    bool
+        Returns True if there are no collision, False otherwise.
     """
 
     if pos.shape[0]==1:
@@ -205,6 +222,7 @@ cdef _test_collisions(np.ndarray pos, np.ndarray radii, double max_R=-1.0):
     # Sort discs by x position
     cdef np.ndarray pos_x = pos[:-1, 0]
 
+    # Use NumPy's C API as the overhead calling through Python is very significant (2-3 times faster)
     cdef np.ndarray sorted_args = np.PyArray_ArgSort(pos_x, 0, np.NPY_QUICKSORT)  # arg sort along axis 0
 
     cdef PyObject* sorted_args_ptr = <PyObject*>sorted_args
@@ -704,10 +722,8 @@ cdef class PySim():
         Raises
         ------
         RuntimeError
-            Raised if it failed to place a disc after 10 attempts using 
-            'random' position allocation or failed to allocate using 'grid' 
-            allocation witout overlapping discs after 10 attempts. No new discs
-            are added to the simulation if this is raised.
+            Raised if it fails to place all discs. No new discs are added to 
+            the simulation if this is raised.
         
         """
 
@@ -772,7 +788,32 @@ cdef class PySim():
             self.add_disc(pos[ind], velocity[ind], mass[ind], radius[ind]) 
 
     def _add_random_disc_random(self, int N_discs, np.ndarray bottom_left, np.ndarray top_right, np.ndarray radius):
-        """Computes positions for new discs using 'random' method"""
+        """
+        Computes positions for new discs using 'random' method
+        
+        Parameters
+        ----------
+        N_discs : int
+            Number of discs to add.
+        bottom_left : np.ndarray
+            Bottom left corner of the box to add discs into.
+        top_right : np.ndarray
+            Top right corner of the box to add discs into.
+        radius : np.ndarray
+            Radii of the discs. Expected to have shape (N_discs,).
+
+        Raises
+        ------
+        RuntimeError
+            Raised if it failed to place a disc after 50 attempts. No new discs
+            are added to the simulation if this is raised.
+
+        Returns
+        -------
+        np.ndarray
+            An np.ndarray of shape (MN_discs, 2) with the positions of the 
+            discs, M is the number of previously added discs.
+        """
 
         cdef int N_current_state = self.current_state['m'].shape[0]
 
@@ -781,7 +822,7 @@ cdef class PySim():
 
         cdef double[:, :] pos_view = pos
 
-        cdef int max_attempt = 20
+        cdef int max_attempt = 50
         cdef int attempt
         cdef int d_ind, coord_ind
 
@@ -796,6 +837,9 @@ cdef class PySim():
         cdef double[2] _top_right
         cdef double[2] diff
 
+        # TODO Avoid caching random numbers
+        # Currently we cache N_random random numbers to reduce Python calles
+        # to NumPy. Should probably find a better way fo doing this
         cdef int N_random = 1_000
         cdef int next_random_ind = 0
         cdef np.ndarray random_value_array = np.random.random(N_random)
@@ -837,8 +881,33 @@ cdef class PySim():
         return pos
 
     def _add_random_disc_grid(self, N_discs, bottom_left, top_right, radius):
-        """Computes positions based on grid"""
+        """
+        Computes positions for new discs using 'grid' method
+        
+        Parameters
+        ----------
+        N_discs : int
+            Number of discs to add.
+        bottom_left : np.ndarray
+            Bottom left corner of the box to add discs into.
+        top_right : np.ndarray
+            Top right corner of the box to add discs into.
+        radius : np.ndarray
+            Radii of the discs. Expected to have shape (N_discs,).
 
+        Raises
+        ------
+        RuntimeError
+            Raised if it failed to place a disc after 50 attempts. No new discs
+            are added to the simulation if this is raised.
+
+        Returns
+        -------
+        np.ndarray
+            An np.ndarray of shape (MN_discs, 2) with the positions of the 
+            discs, M is the number of previously added discs.
+        """
+        
         N_current_state = self.current_state['m'].shape[0]
 
         pos = np.empty((N_current_state + N_discs, 2), dtype=np.float64)
