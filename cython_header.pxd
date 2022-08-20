@@ -110,7 +110,7 @@ cdef extern from "Sim.h":
         vector[Event] events  # events that occured during the simulation
         double current_time
 
-        void advance(size_t, double, bool)
+        void advance(size_t, double, bool) except+
         void setup()
         void add_disc(Vec2D pos, Vec2D v, double w, double m, double R, double I) except+
 

@@ -109,6 +109,9 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 		// update sector IDs
 		update_sector_ID(i, old_event_i);
 
+		// Verify the disc has not entered the outer ring of sectors, indicating a bug in the simulation
+		verify_disc_within_bounds(i);
+
 		// Update count of how many collisions have been performed
 		// We count disc-disc as one collision so we count disc-wall as 2 to avoid double counting
 		// disc-disc collisions 
@@ -959,4 +962,23 @@ bool Sim::check_leaving_sector(const Vec2D& v, const Wall& b, size_t disc_ind) c
 
 	// disc is leaving sector if this is true
 	return v.dot(n) < 0.0;
+}
+
+void Sim::verify_disc_within_bounds(size_t disc_ind) const
+{
+	size_t x, y;
+
+	std::tie(x, y) = sector_ID_to_coords(initial_state[disc_ind].sector_ID);
+
+	if (x == 0 || x == N - 1 ||
+		y == 0 || y == M - 1)
+	{
+		std::string disc_ind_s, x_s, y_s;
+
+		disc_ind_s = std::to_string(disc_ind);
+		x_s = std::to_string(x);
+		y_s = std::to_string(y);
+
+		throw std::runtime_error("Disc " + disc_ind_s + " entered sector (" + x_s + ", " + y_s + ") and left the bounds of the simulation.");
+	}
 }

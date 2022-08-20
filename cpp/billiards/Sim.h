@@ -21,6 +21,7 @@
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <string>
 #include <tuple>
 #include <vector>
 #include "Vec2D.h"
@@ -191,5 +192,8 @@ private:
 	// when a disc is on/near a boundary
 	// v should be the velocity of the disc when it is at the boundary
 	bool check_leaving_sector(const Vec2D& v, const Wall& b, size_t disc_ind) const;
+
+	// Verifies the sector ID of the disc places it within the bounds of the simulation
+	void verify_disc_within_bounds(size_t disc_ind) const;
 };
 
