@@ -525,23 +525,6 @@ cdef class PySim():
 
         del self.s
 
-    def setup(self):
-        """
-        Sets up the simulation internally so it is ready to run. Should be 
-        called before calling PySim.advance()
-        
-        Parameters
-        ----------
-        None.
-
-        Returns
-        -------
-        None.
-
-        """
-
-        self.s.setup()
-
     def advance(self, size_t max_iterations, double max_t, bool record_events):
         """
         Advances the simulation by either max_iterations iterations or max_t

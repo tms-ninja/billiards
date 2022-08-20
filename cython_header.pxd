@@ -111,7 +111,6 @@ cdef extern from "Sim.h":
         double current_time
 
         void advance(size_t, double, bool) except+
-        void setup()
         void add_disc(Vec2D pos, Vec2D v, double w, double m, double R, double I) except+
 
         # Getter setter methods for coefficients of normal/tangential restitution,

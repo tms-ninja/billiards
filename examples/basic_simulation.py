@@ -34,9 +34,6 @@ s = bl.PySim([-10.0, -10.0], [10.0, 10.0])
 for d in discs:
     s.add_disc(np.array(d['start']), np.array(d['v']), d['m'], d['R'])
 
-# Set up the simulation ready to be run
-s.setup()
-
 # Perform one collision
 s.advance(10, 10000.0, True)
 

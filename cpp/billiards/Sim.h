@@ -65,10 +65,6 @@ public:
 	// Advances the simulation by either max_iterations or max_t, whichever is reached sooner
 	void advance(size_t max_iterations, double max_t, bool record_events);
 
-	// Sets up the Sim instance ready for advance() to be called. Effectively just copies
-	// current_state to initial_state so we know how it began
-	void setup();
-
 	// Adds a disc to the simulation. Should not be called after the simulation has started
 	void add_disc(const Vec2D& pos, const Vec2D& v, double w, double m, double R, double I);
 

@@ -48,8 +48,6 @@ def create_20_disc_sim(n_sector_x, n_sector_y, e_t, g):
     #s.add_box_walls(box_bottom_left, box_top_right)
     s.add_random_discs(np.array(box_bottom_left), np.array(box_top_right), 20, 1.0, 1.0, v=5.0)
 
-    s.setup()
-
     # Perform some collision
     s.advance(1000, 100.0, True)
 
@@ -87,8 +85,6 @@ class Test_PySim(unittest.TestCase):
 
         s.add_disc([3.0, 3.0], [-1.0, 1.0], 1.0, 1.0)
 
-        s.setup()
-
         s.advance(1, 10.0, True)
 
         # Check expected event properties
@@ -109,8 +105,6 @@ class Test_PySim(unittest.TestCase):
         s = bl.PySim([0.0, 0.0], [10.0, 10.0])
 
         s.add_disc([3.0, 7.0], [1.0, 1.0], 1.0, 1.0)
-
-        s.setup()
 
         s.advance(1, 10.0, True)
 
@@ -134,8 +128,6 @@ class Test_PySim(unittest.TestCase):
         s.add_wall([0.0, 0.0], [10.0, 10.0])
         s.add_disc([3.0, 0.0], [0.0, 1.0], 1.0, 1.0)
 
-        s.setup()
-
         s.advance(1, 10.0, True)
 
         # Check expected event properties
@@ -158,7 +150,6 @@ class Test_PySim(unittest.TestCase):
         s.add_disc([3.0, 0.0], [0.0, 1.0], 1.0, 1.0)
         s.add_disc([3.0, 10.0], [0.0, -1.0], 1.0, 1.0)
 
-        s.setup()
         s.advance(2, 10.0, True)
 
         # Check expected event properties
@@ -201,7 +192,6 @@ class Test_PySim(unittest.TestCase):
         s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 1.0)
         s.add_disc([10.0, 0.0], [-1.0, 0.0], 1.0, 1.0)
 
-        s.setup()
         s.advance(2, 10.0, True)
 
         # Check expected event properties
@@ -247,7 +237,6 @@ class Test_PySim(unittest.TestCase):
         s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 1.0)
         s.add_disc([10.0, np.sqrt(2)], [-1.0, 0.0], 1.0, 1.0)
 
-        s.setup()
         s.advance(2, 10.0, True)
 
         # Check expected event properties
@@ -293,7 +282,6 @@ class Test_PySim(unittest.TestCase):
         s.add_disc([0.0, 0.0], [2.0, 0.0], 1.0, 1.0)
         s.add_disc([10.0, 0.0], [-3.0, 0.0], 1.0, 1.0)
 
-        s.setup()
         s.advance(2, 10.0, True)
 
         # Check expected event properties
@@ -339,7 +327,6 @@ class Test_PySim(unittest.TestCase):
         s.add_disc([0.0, 0.0], [1.0, 0.0], 2.0, 1.0)
         s.add_disc([10.0, 0.0], [-1.0, 0.0], 3.0, 1.0)
 
-        s.setup()
         s.advance(2, 10.0, True)
 
         # Check expected event properties
@@ -385,7 +372,6 @@ class Test_PySim(unittest.TestCase):
         s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 2.0)
         s.add_disc([10.0, 0.0], [-1.0, 0.0], 1.0, 3.0)
 
-        s.setup()
         s.advance(2, 10.0, True)
 
         # Check expected event properties
@@ -454,8 +440,6 @@ class Test_PySim(unittest.TestCase):
 
         s.add_disc([3.0, 3.0], [-1.0, 1.0], 1.0, 1.0, I=0.5, w=0.0)
 
-        s.setup()
-
         s.advance(1, 10.0, True)
 
         # Check expected event properties
@@ -481,8 +465,6 @@ class Test_PySim(unittest.TestCase):
         s.e_t = 1.0  # Set discs to being perfectly rough
 
         s.add_disc([3.0, 7.0], [1.0, 1.0], 1.0, 1.0, I=0.5, w=0.0)
-
-        s.setup()
 
         s.advance(1, 10.0, True)
 
@@ -510,8 +492,6 @@ class Test_PySim(unittest.TestCase):
         s.add_wall([0.0, 0.0], [10.0, 10.0])
         s.add_disc([3.0, 0.0], [0.0, 1.0], 1.0, 1.0, I=0.5, w=0.0)
 
-        s.setup()
-
         s.advance(1, 10.0, True)
 
         # Check expected event properties
@@ -538,7 +518,6 @@ class Test_PySim(unittest.TestCase):
         s.add_disc([3.0, 0.0], [0.0, 1.0], 1.0, 1.0, I=0.5, w=1.0)
         s.add_disc([3.0, 10.0], [0.0, -1.0], 1.0, 1.0, I=0.5, w=1.0)
 
-        s.setup()
         s.advance(2, 10.0, True)
 
         # Check expected event properties
@@ -586,7 +565,6 @@ class Test_PySim(unittest.TestCase):
         s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 1.0, I=0.5, w=1.0)
         s.add_disc([10.0, 0.0], [-1.0, 0.0], 1.0, 1.0, I=0.5, w=1.0)
 
-        s.setup()
         s.advance(2, 10.0, True)
 
         # Check expected event properties
@@ -637,7 +615,6 @@ class Test_PySim(unittest.TestCase):
         s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 1.0, I=0.5, w=1.0)
         s.add_disc([10.0, np.sqrt(2)], [-1.0, 0.0], 1.0, 1.0, I=0.5, w=1.0)
 
-        s.setup()
         s.advance(2, 10.0, True)
 
         # Check expected event properties
@@ -688,7 +665,6 @@ class Test_PySim(unittest.TestCase):
         s.add_disc([0.0, 0.0], [2.0, 0.0], 1.0, 1.0, I=0.5, w=1.0)
         s.add_disc([10.0, 0.0], [-3.0, 0.0], 1.0, 1.0, I=0.5, w=1.0)
 
-        s.setup()
         s.advance(2, 10.0, True)
 
         # Check expected event properties
@@ -739,7 +715,6 @@ class Test_PySim(unittest.TestCase):
         s.add_disc([0.0, 0.0], [1.0, 0.0], 2.0, 1.0, I=1.0, w=1.0)
         s.add_disc([10.0, 0.0], [-1.0, 0.0], 3.0, 1.0, I=1.0, w=1.0)
 
-        s.setup()
         s.advance(2, 10.0, True)
 
         # Check expected event properties
@@ -790,7 +765,6 @@ class Test_PySim(unittest.TestCase):
         s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 2.0, I=1.0, w=1.0)
         s.add_disc([10.0, 0.0], [-1.0, 0.0], 1.0, 3.0, I=1.0, w=1.0)
 
-        s.setup()
         s.advance(2, 10.0, True)
 
         # Check expected event properties
@@ -841,7 +815,6 @@ class Test_PySim(unittest.TestCase):
         s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 1.0, I=0.1, w=1.0)
         s.add_disc([10.0, 0.0], [-1.0, 0.0], 1.0, 1.0, I=0.2, w=1.0)
 
-        s.setup()
         s.advance(2, 10.0, True)
 
         # Check expected event properties
@@ -892,7 +865,6 @@ class Test_PySim(unittest.TestCase):
         s.add_disc([0.0, 0.0], [1.0, 0.0], 1.0, 1.0, I=0.5, w=2.0)
         s.add_disc([10.0, 0.0], [-1.0, 0.0], 1.0, 1.0, I=0.5, w=3.0)
 
-        s.setup()
         s.advance(2, 10.0, True)
 
         # Check expected event properties
@@ -966,8 +938,6 @@ class Test_PySim(unittest.TestCase):
 
         s.add_disc([3.0, 3.0], [-1.0, 1.0], 1.0, 1.0)
 
-        s.setup()
-
         s.advance(1, 10.0, True)
 
         # Check expected event properties
@@ -990,8 +960,6 @@ class Test_PySim(unittest.TestCase):
         s.g = [0.0, -1.0]
 
         s.add_disc([3.0, 2.0], [1.0, 1.0], 1.0, 1.0)
-
-        s.setup()
 
         s.advance(1, 10.0, True)
 
@@ -1017,7 +985,6 @@ class Test_PySim(unittest.TestCase):
         s.add_disc([0.0, 0.0], [0.0, 0.0], 1.0, 1.0)
         s.add_disc([4.0, -2.0], [-1.0, 1.0], 1.0, 1.0)
 
-        s.setup()
         s.advance(2, 10.0, True)
 
         # Check expected event properties

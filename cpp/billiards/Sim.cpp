@@ -198,35 +198,6 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 	}
 }
 
-void Sim::setup()
-{
-	events_vec.resize(initial_state.size());
-
-	new_vec.resize(initial_state.size(), 0);
-	old_vec.resize(initial_state.size(), 1);
-
-	pht.resize(initial_state.size());
-
-	for (size_t ind = 0; ind < initial_state.size(); ++ind)
-	{
-		auto& elem{ events_vec[ind] };
-		Disc& disc{ initial_state[ind] };
-
-		elem[0].t = 0.0;
-		elem[0].pos = disc.r;
-		elem[0].new_v = disc.v;
-		elem[0].new_w = disc.w;
-		elem[0].ind = ind;
-		elem[0].second_ind = std::numeric_limits<size_t>::max();
-		disc.sector_ID = compute_sector_ID(disc.r);
-		
-		elem[1] = elem[0];
-
-		// Add to the heap
-		add_time_to_heap(ind);
-	}
-}
-
 void Sim::add_disc(const Vec2D& pos, const Vec2D& v, double w, double m, double R, double I)
 {
 	// Check disc is within simulation bounds
@@ -263,12 +234,37 @@ void Sim::add_disc(const Vec2D& pos, const Vec2D& v, double w, double m, double 
 	else if (I > m*R*R)
 		throw std::invalid_argument("Can't add disc with moment of inertia larger than (m * R^2) / 2");
 	
-
-	size_t sector_ID{compute_sector_ID(pos)};
+	// Everything's good & valid, we can add the disc
+	size_t disc_ind{ initial_state.size() };
+	size_t sector_ID{ compute_sector_ID(pos) };
 
 	sector_entires.at(sector_ID).push_back(initial_state.size());
-
+	
 	initial_state.emplace_back(pos, v, w, m, R, I, sector_ID);
+
+	// Bookkeeping with events vector
+	events_vec.emplace_back();  // Inserts default constructed element at end
+
+	new_vec.push_back(0);
+	old_vec.push_back(1);
+
+	pht.emplace_back();
+
+	auto& elem{ events_vec.back()};
+	Disc& disc{ initial_state.back()};
+
+	elem[0].t = 0.0;
+	elem[0].pos = disc.r;
+	elem[0].new_v = disc.v;
+	elem[0].new_w = disc.w;
+	elem[0].ind = disc_ind;
+	elem[0].second_ind = std::numeric_limits<size_t>::max();
+	disc.sector_ID = sector_ID;
+
+	elem[1] = elem[0];
+
+	// Add to the heap
+	add_time_to_heap(disc_ind);
 }
 
 double Sim::get_e_n() const
