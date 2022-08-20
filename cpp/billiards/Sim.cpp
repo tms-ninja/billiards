@@ -451,7 +451,9 @@ std::pair<size_t, double> Sim::get_next_wall_coll(size_t disc_ind) const
 
 	// Ignore checking for sectors not adjacent to a wall
 	size_t sector_ID{ initial_state[disc_ind].sector_ID };
-	size_t x{ sector_ID % N }, y{ sector_ID / N };
+	size_t x, y;
+
+	std::tie(x, y) = sector_ID_to_coords(sector_ID);
 
 	if (
 		2 <= x && x <= N-3 &&
@@ -496,7 +498,9 @@ std::pair<size_t, double> Sim::get_next_boundary_coll(size_t disc_ind) const
 	size_t sector_ID{ initial_state[disc_ind].sector_ID };
 
 	// coordinates of sector
-	size_t x{ sector_ID % N }, y{ sector_ID / N };
+	size_t x, y;
+
+	std::tie(x, y) = sector_ID_to_coords(sector_ID);
 
 	// First N+1 boundaries correspond to vertical boundaries going from left to right
 	// next M+1 are horizontal boundaries going from bottom to top
@@ -867,6 +871,18 @@ Vec2D Sim::advance_velocity(const Vec2D& pos, const Vec2D& v, double dt) const
 	return v + dt*g;
 }
 
+size_t Sim::sector_coords_to_ID(size_t x, size_t y) const
+{
+	return x + y*N;
+}
+
+std::pair<size_t, size_t> Sim::sector_ID_to_coords(size_t sector_ID) const
+{
+	size_t x{ sector_ID % N }, y{ sector_ID / N };
+
+	return {x, y};
+}
+
 size_t Sim::compute_sector_ID(const Vec2D& pos) const
 {
 	double left, bottom;
@@ -904,25 +920,27 @@ void Sim::update_sector_ID(const size_t disc_ind, const Event& old_event)
 	// compute_sector_ID() might not give the right answer
 	// coordinates of sector
 	size_t sector_ID{ d.sector_ID };
-	size_t x{ sector_ID % N }, y{ sector_ID / N };
+	size_t x, y;
+
+	std::tie(x, y) = sector_ID_to_coords(sector_ID);
 
 	size_t boundary_ind{ old_event.second_ind };
 
 	if (boundary_ind == x)  // left boundary
 	{
-		d.sector_ID = sector_ID - 1;
+		d.sector_ID = sector_coords_to_ID(x - 1, y);
 	}
 	else if (boundary_ind == x + 1)  // right boundary
 	{
-		d.sector_ID = sector_ID + 1;
+		d.sector_ID = sector_coords_to_ID(x + 1, y);
 	}
 	else if (boundary_ind == N + 1 + y)  // bottom boundary
 	{
-		d.sector_ID = sector_ID - N;
+		d.sector_ID = sector_coords_to_ID(x, y - 1);
 	}
 	else  // top boundary
 	{
-		d.sector_ID = sector_ID + N;
+		d.sector_ID = sector_coords_to_ID(x, y + 1);
 	}
 	
 	sector_entires[d.sector_ID].push_back(disc_ind);

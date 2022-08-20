@@ -172,6 +172,12 @@ private:
 	// Computes the velocity of a particle with initial position pos, velocity v after a time dt
 	Vec2D advance_velocity(const Vec2D& pos, const Vec2D& v, double dt) const;
 
+	// Computes the sector ID given its coordinates
+	inline size_t sector_coords_to_ID(size_t x, size_t y) const;
+
+	// Computes the sector's Cartesian corrdinates from its sector ID
+	inline std::pair<size_t, size_t> sector_ID_to_coords(size_t sector_ID) const;
+
 	// Returns the sector ID of the sector the given position is in
 	size_t compute_sector_ID(const Vec2D& pos) const;
 
