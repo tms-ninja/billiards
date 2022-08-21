@@ -21,6 +21,7 @@
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <string>
 #include <tuple>
 #include <vector>
 #include "Vec2D.h"
@@ -63,10 +64,6 @@ public:
 
 	// Advances the simulation by either max_iterations or max_t, whichever is reached sooner
 	void advance(size_t max_iterations, double max_t, bool record_events);
-
-	// Sets up the Sim instance ready for advance() to be called. Effectively just copies
-	// current_state to initial_state so we know how it began
-	void setup();
 
 	// Adds a disc to the simulation. Should not be called after the simulation has started
 	void add_disc(const Vec2D& pos, const Vec2D& v, double w, double m, double R, double I);
@@ -172,6 +169,12 @@ private:
 	// Computes the velocity of a particle with initial position pos, velocity v after a time dt
 	Vec2D advance_velocity(const Vec2D& pos, const Vec2D& v, double dt) const;
 
+	// Computes the sector ID given its coordinates
+	inline size_t sector_coords_to_ID(size_t x, size_t y) const;
+
+	// Computes the sector's Cartesian corrdinates from its sector ID
+	inline std::pair<size_t, size_t> sector_ID_to_coords(size_t sector_ID) const;
+
 	// Returns the sector ID of the sector the given position is in
 	size_t compute_sector_ID(const Vec2D& pos) const;
 
@@ -185,5 +188,8 @@ private:
 	// when a disc is on/near a boundary
 	// v should be the velocity of the disc when it is at the boundary
 	bool check_leaving_sector(const Vec2D& v, const Wall& b, size_t disc_ind) const;
+
+	// Verifies the sector ID of the disc places it within the bounds of the simulation
+	void verify_disc_within_bounds(size_t disc_ind) const;
 };
 

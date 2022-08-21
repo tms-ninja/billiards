@@ -109,6 +109,9 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 		// update sector IDs
 		update_sector_ID(i, old_event_i);
 
+		// Verify the disc has not entered the outer ring of sectors, indicating a bug in the simulation
+		verify_disc_within_bounds(i);
+
 		// Update count of how many collisions have been performed
 		// We count disc-disc as one collision so we count disc-wall as 2 to avoid double counting
 		// disc-disc collisions 
@@ -195,35 +198,6 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 	}
 }
 
-void Sim::setup()
-{
-	events_vec.resize(initial_state.size());
-
-	new_vec.resize(initial_state.size(), 0);
-	old_vec.resize(initial_state.size(), 1);
-
-	pht.resize(initial_state.size());
-
-	for (size_t ind = 0; ind < initial_state.size(); ++ind)
-	{
-		auto& elem{ events_vec[ind] };
-		Disc& disc{ initial_state[ind] };
-
-		elem[0].t = 0.0;
-		elem[0].pos = disc.r;
-		elem[0].new_v = disc.v;
-		elem[0].new_w = disc.w;
-		elem[0].ind = ind;
-		elem[0].second_ind = std::numeric_limits<size_t>::max();
-		disc.sector_ID = compute_sector_ID(disc.r);
-		
-		elem[1] = elem[0];
-
-		// Add to the heap
-		add_time_to_heap(ind);
-	}
-}
-
 void Sim::add_disc(const Vec2D& pos, const Vec2D& v, double w, double m, double R, double I)
 {
 	// Check disc is within simulation bounds
@@ -254,18 +228,43 @@ void Sim::add_disc(const Vec2D& pos, const Vec2D& v, double w, double m, double 
 	if (2.0 * R >= sector_width || 2.0*R >= sector_height)
 		throw std::invalid_argument("Can't add disc with radius greater than or equal to sector width/height");
 
-	// check moment of inertia is greater than zero and not larger than maximum M*R^2 / 2
+	// check moment of inertia is greater than zero and not larger than maximum M*R^2
 	if (I <= 0.0)
 		throw std::invalid_argument("Can't add disc with moment of inertia less than or equal to zero");
-	else if (I > m*R*R/2.0)
+	else if (I > m*R*R)
 		throw std::invalid_argument("Can't add disc with moment of inertia larger than (m * R^2) / 2");
 	
-
-	size_t sector_ID{compute_sector_ID(pos)};
+	// Everything's good & valid, we can add the disc
+	size_t disc_ind{ initial_state.size() };
+	size_t sector_ID{ compute_sector_ID(pos) };
 
 	sector_entires.at(sector_ID).push_back(initial_state.size());
-
+	
 	initial_state.emplace_back(pos, v, w, m, R, I, sector_ID);
+
+	// Bookkeeping with events vector
+	events_vec.emplace_back();  // Inserts default constructed element at end
+
+	new_vec.push_back(0);
+	old_vec.push_back(1);
+
+	pht.emplace_back();
+
+	auto& elem{ events_vec.back()};
+	Disc& disc{ initial_state.back()};
+
+	elem[0].t = 0.0;
+	elem[0].pos = disc.r;
+	elem[0].new_v = disc.v;
+	elem[0].new_w = disc.w;
+	elem[0].ind = disc_ind;
+	elem[0].second_ind = std::numeric_limits<size_t>::max();
+	disc.sector_ID = sector_ID;
+
+	elem[1] = elem[0];
+
+	// Add to the heap
+	add_time_to_heap(disc_ind);
 }
 
 double Sim::get_e_n() const
@@ -451,7 +450,9 @@ std::pair<size_t, double> Sim::get_next_wall_coll(size_t disc_ind) const
 
 	// Ignore checking for sectors not adjacent to a wall
 	size_t sector_ID{ initial_state[disc_ind].sector_ID };
-	size_t x{ sector_ID % N }, y{ sector_ID / N };
+	size_t x, y;
+
+	std::tie(x, y) = sector_ID_to_coords(sector_ID);
 
 	if (
 		2 <= x && x <= N-3 &&
@@ -496,7 +497,9 @@ std::pair<size_t, double> Sim::get_next_boundary_coll(size_t disc_ind) const
 	size_t sector_ID{ initial_state[disc_ind].sector_ID };
 
 	// coordinates of sector
-	size_t x{ sector_ID % N }, y{ sector_ID / N };
+	size_t x, y;
+
+	std::tie(x, y) = sector_ID_to_coords(sector_ID);
 
 	// First N+1 boundaries correspond to vertical boundaries going from left to right
 	// next M+1 are horizontal boundaries going from bottom to top
@@ -867,6 +870,18 @@ Vec2D Sim::advance_velocity(const Vec2D& pos, const Vec2D& v, double dt) const
 	return v + dt*g;
 }
 
+size_t Sim::sector_coords_to_ID(size_t x, size_t y) const
+{
+	return x + y*N;
+}
+
+std::pair<size_t, size_t> Sim::sector_ID_to_coords(size_t sector_ID) const
+{
+	size_t x{ sector_ID % N }, y{ sector_ID / N };
+
+	return {x, y};
+}
+
 size_t Sim::compute_sector_ID(const Vec2D& pos) const
 {
 	double left, bottom;
@@ -904,25 +919,27 @@ void Sim::update_sector_ID(const size_t disc_ind, const Event& old_event)
 	// compute_sector_ID() might not give the right answer
 	// coordinates of sector
 	size_t sector_ID{ d.sector_ID };
-	size_t x{ sector_ID % N }, y{ sector_ID / N };
+	size_t x, y;
+
+	std::tie(x, y) = sector_ID_to_coords(sector_ID);
 
 	size_t boundary_ind{ old_event.second_ind };
 
 	if (boundary_ind == x)  // left boundary
 	{
-		d.sector_ID = sector_ID - 1;
+		d.sector_ID = sector_coords_to_ID(x - 1, y);
 	}
 	else if (boundary_ind == x + 1)  // right boundary
 	{
-		d.sector_ID = sector_ID + 1;
+		d.sector_ID = sector_coords_to_ID(x + 1, y);
 	}
 	else if (boundary_ind == N + 1 + y)  // bottom boundary
 	{
-		d.sector_ID = sector_ID - N;
+		d.sector_ID = sector_coords_to_ID(x, y - 1);
 	}
 	else  // top boundary
 	{
-		d.sector_ID = sector_ID + N;
+		d.sector_ID = sector_coords_to_ID(x, y + 1);
 	}
 	
 	sector_entires[d.sector_ID].push_back(disc_ind);
@@ -941,4 +958,23 @@ bool Sim::check_leaving_sector(const Vec2D& v, const Wall& b, size_t disc_ind) c
 
 	// disc is leaving sector if this is true
 	return v.dot(n) < 0.0;
+}
+
+void Sim::verify_disc_within_bounds(size_t disc_ind) const
+{
+	size_t x, y;
+
+	std::tie(x, y) = sector_ID_to_coords(initial_state[disc_ind].sector_ID);
+
+	if (x == 0 || x == N - 1 ||
+		y == 0 || y == M - 1)
+	{
+		std::string disc_ind_s, x_s, y_s;
+
+		disc_ind_s = std::to_string(disc_ind);
+		x_s = std::to_string(x);
+		y_s = std::to_string(y);
+
+		throw std::runtime_error("Disc " + disc_ind_s + " entered sector (" + x_s + ", " + y_s + ") and left the bounds of the simulation.");
+	}
 }

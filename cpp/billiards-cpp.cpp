@@ -52,8 +52,6 @@ Sim setup_perf_test(bool gravity)
 		}
 	}
 
-	s.setup();
-
 	return s;
 }
 
@@ -68,7 +66,7 @@ void run_perf_test(Sim s)
 int main()
 {
 	std::cout << "Started\n";
-	Sim s{ setup_perf_test(true) };
+	Sim s{ setup_perf_test(false) };
 
 	auto begin = std::chrono::steady_clock::now();
 

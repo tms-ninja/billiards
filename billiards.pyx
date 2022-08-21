@@ -17,15 +17,23 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # distutils: language = c++
+
+
 import enum
 import math
 
 from cython_header cimport *
+cimport cython
+from cpython.ref cimport PyObject
+from libc.math cimport hypot
 
 import numpy as np
 cimport numpy as np
 
 import scipy.stats
+
+# Initialise numpy's C API
+np.import_array()
 
 cdef _get_state_pos(vector[Disc]& state):
     """
@@ -172,6 +180,76 @@ cdef _get_state_I(vector[Disc]& state):
         arr[d_ind] = state[d_ind].I
 
     return arr
+
+
+cdef _test_collisions(np.ndarray pos, np.ndarray radii, double max_R=-1.0):
+    """
+    Tests for collisions between last position and all earlier positions
+    Returns True if there are no collisions between discs.
+
+    Parameters
+    ----------
+    pos : np.ndarray
+        The positions of the centres of all discs. The position of the disc to
+        be tested should be at pos[-1]. Expected to have shape (N, 2).
+    radii : np.ndarray
+        The radii of the discs. The radius of the disc to be tested should be 
+        at radii[-1]. Expected to have shape (N, 2).
+    max_R : double, optional
+        The maximum radius any disc has. If not set or set to -1.0, 
+        _test_collision() will determine the maximum. The default it -1.0.
+
+    Returns
+    -------
+    bool
+        Returns True if there are no collision, False otherwise.
+    """
+
+    if pos.shape[0]==1:
+        return True
+
+    cdef double[:, :] pos_view = pos
+    cdef double[:] radii_view = radii
+
+    cdef double R_disc = radii_view[-1]
+    cdef double max_closest_dist
+
+    if max_R==-1.0:
+        max_closest_dist = R_disc + np.max(radii[:-1])
+    else:
+        max_closest_dist = R_disc + max_R
+
+    # Use sweep and prune to reduce number of discs that need checking
+    # Sort discs by x position
+    cdef np.ndarray pos_x = pos[:-1, 0]
+
+    # Use NumPy's C API as the overhead calling through Python is very significant (2-3 times faster)
+    cdef np.ndarray sorted_args = np.PyArray_ArgSort(pos_x, 0, np.NPY_QUICKSORT)  # arg sort along axis 0
+
+    cdef PyObject* sorted_args_ptr = <PyObject*>sorted_args
+    cdef double new_disc_x = pos_view[-1, 0]
+
+    # left_ind includes the one we need to check
+    cdef int left_ind = np.PyArray_SearchSorted(pos_x, float(new_disc_x-max_closest_dist), np.NPY_SEARCHLEFT, sorted_args_ptr)
+
+    # right_ind is 1 past what we need to check
+    cdef int right_ind = np.PyArray_SearchSorted(pos_x, float(new_disc_x+max_closest_dist), np.NPY_SEARCHRIGHT, sorted_args_ptr)
+    
+    cdef int i
+    cdef int disc_to_check
+
+    cdef double[2] diff_pos
+
+    for i in range(left_ind, right_ind):
+        disc_to_check = sorted_args[i]
+
+        for coord_ind in range(2):
+            diff_pos[coord_ind] = pos_view[-1, coord_ind] - pos_view[disc_to_check, coord_ind]
+
+        if hypot(diff_pos[0], diff_pos[1]) < R_disc + radii_view[disc_to_check]:
+            return False
+    
+    return True
 
 # class PyEvent
 
@@ -448,23 +526,6 @@ cdef class PySim():
 
         del self.s
 
-    def setup(self):
-        """
-        Sets up the simulation internally so it is ready to run. Should be 
-        called before calling PySim.advance()
-        
-        Parameters
-        ----------
-        None.
-
-        Returns
-        -------
-        None.
-
-        """
-
-        self.s.setup()
-
     def advance(self, size_t max_iterations, double max_t, bool record_events):
         """
         Advances the simulation by either max_iterations iterations or max_t
@@ -645,10 +706,8 @@ cdef class PySim():
         Raises
         ------
         RuntimeError
-            Raised if it failed to place a disc after 10 attempts using 
-            'random' position allocation or failed to allocate using 'grid' 
-            allocation witout overlapping discs after 10 attempts. No new discs
-            are added to the simulation if this is raised.
+            Raised if it fails to place all discs. No new discs are added to 
+            the simulation if this is raised.
         
         """
 
@@ -701,88 +760,10 @@ cdef class PySim():
         pos = np.empty((N_current_state + N_discs, 2), dtype=np.float64)
         pos[:N_current_state] = current_state['r']
 
-        if pos_allocation=='random':
-            _bottom_left = bottom_left + R
-            _top_right = top_right - R
-
-            for d_ind in range(N_current_state, N_current_state + N_discs):
-                attempt = 10
-
-                while attempt > 0:
-                    d_pos = _bottom_left + (_top_right - _bottom_left) * np.random.random(2)
-
-                    disc_is_colliding = False
-
-                    # Test for collisions
-                    for i in range(0, d_ind):
-                        if np.linalg.norm(d_pos - pos[i]) < radius[d_ind] + radius[i]:
-                            disc_is_colliding = True
-                            break
-                    else:
-                        pos[d_ind] = d_pos
-                        break  # New disc has no collisions
-
-                    # Disc does have a collision, try again
-                    attempt -= 1
-                else:
-                    raise RuntimeError(f"Unable to place disc {d_ind - N_current_state} after 10 attempts.")
+        if pos_allocation=='random':            
+            pos = self._add_random_disc_random(N_discs, np.array(bottom_left), np.array(top_right), radius)
         elif pos_allocation=='grid':
-            # Small margin so discs won't be touching bounds of rquested box
-            _bottom_left = bottom_left + R*1.001
-            _top_right = top_right - R*1.001
-            
-            # require n_per_side**2 >= N _discs
-            n_per_side = 1 + math.isqrt(N_discs-1)
-
-            x_pos = np.linspace(_bottom_left[0], _top_right[0], n_per_side)
-            y_pos = np.linspace(_bottom_left[1], _top_right[1], n_per_side)
-
-            xx, yy = np.meshgrid(x_pos, y_pos)
-
-            # In general we expect n_per_side**2 > N_discs, so we randomly 
-            # choose which positions on the grid to use
-            possible_positions = np.column_stack((xx.ravel(), yy.ravel()))
-
-            attempt = 0
-            max_attempt = 10
-
-            while attempt < max_attempt:
-                # select the positions for this attempt
-                selected_indices = np.random.choice(possible_positions.shape[0], N_discs, replace=False)
-                pos[N_current_state:] = possible_positions[selected_indices]
-
-                overlapping_discs = False
-
-                # Now check there aren't any discs overlapping
-                if n_per_side > 1:
-                    dx, dy = x_pos[1] - x_pos[0], y_pos[1] - y_pos[0]
-
-                    max_R = np.max(radius)
-
-                    if dx > 2*max_R and dy > 2*max_R and N_current_state==0:
-                        # Guaranteed there are no overlapping discs
-                        break
-                    else:
-                        for d_ind in range(N_current_state, N_current_state + N_discs):
-                            d_pos = pos[d_ind]
-
-                            # Test for collisions
-                            for partner_ind in range(0, d_ind):
-                                if np.linalg.norm(d_pos - pos[partner_ind]) < radius[d_ind] + radius[partner_ind]:
-                                    overlapping_discs = True
-                                    break
-
-                            if overlapping_discs:
-                                break
-
-                # we've allocated positions to all discs without any overlapping
-                if not overlapping_discs:
-                    break
-
-                attempt += 1
-            else:
-                raise RuntimeError(f"Unable to place discs on grid after {max_attempt} attempts")
-                                
+            pos = self._add_random_disc_grid(N_discs, bottom_left, top_right, radius)
         else:
             raise ValueError(f"Unknown pos_allocation: {pos_allocation}. Allowed values are 'random' or 'grid'.")
 
@@ -790,6 +771,185 @@ cdef class PySim():
         for ind in range(N_current_state, N_current_state + N_discs):
             self.add_disc(pos[ind], velocity[ind], mass[ind], radius[ind]) 
 
+    def _add_random_disc_random(self, int N_discs, np.ndarray bottom_left, np.ndarray top_right, np.ndarray radius):
+        """
+        Computes positions for new discs using 'random' method
+        
+        Parameters
+        ----------
+        N_discs : int
+            Number of discs to add.
+        bottom_left : np.ndarray
+            Bottom left corner of the box to add discs into.
+        top_right : np.ndarray
+            Top right corner of the box to add discs into.
+        radius : np.ndarray
+            Radii of the discs. Expected to have shape (N_discs,).
+
+        Raises
+        ------
+        RuntimeError
+            Raised if it failed to place a disc after 50 attempts. No new discs
+            are added to the simulation if this is raised.
+
+        Returns
+        -------
+        np.ndarray
+            An np.ndarray of shape (MN_discs, 2) with the positions of the 
+            discs, M is the number of previously added discs.
+        """
+
+        cdef int N_current_state = self.current_state['m'].shape[0]
+
+        cdef np.ndarray pos = np.empty((N_current_state + N_discs, 2), dtype=np.float64)
+        pos[:N_current_state] = self.current_state['r']
+
+        cdef double[:, :] pos_view = pos
+
+        cdef int max_attempt = 50
+        cdef int attempt
+        cdef int d_ind, coord_ind
+
+        cdef double[:] radius_view = radius
+        cdef double max_R = np.max(radius)
+        cdef double R
+
+        cdef double[:] bottom_left_view = bottom_left
+        cdef double[:] top_right_view = top_right
+
+        cdef double[2] _bottom_left
+        cdef double[2] _top_right
+        cdef double[2] diff
+
+        # TODO Avoid caching random numbers
+        # Currently we cache N_random random numbers to reduce Python calles
+        # to NumPy. Should probably find a better way fo doing this
+        cdef int N_random = 1_000
+        cdef int next_random_ind = 0
+        cdef np.ndarray random_value_array = np.random.random(N_random)
+        cdef double random_value
+
+        for d_ind in range(N_current_state, N_current_state + N_discs):
+            attempt = max_attempt
+
+            R = radius_view[d_ind]
+
+            for coord_ind in range(2):
+                _bottom_left[coord_ind] = bottom_left_view[coord_ind] + R
+                _top_right[coord_ind] = top_right_view[coord_ind] - R
+
+                diff[coord_ind] = _top_right[coord_ind] - _bottom_left[coord_ind]
+
+            pos_sliced = pos[:d_ind+1]
+            radius_sliced = radius[:d_ind+1]
+
+            while attempt > 0:
+                for coord_ind in range(2):
+                    if next_random_ind==N_random:
+                        np.copyto(random_value_array, np.random.random(N_random))
+                        next_random_ind = 0
+                    
+                    random_value = random_value_array[next_random_ind]
+                    next_random_ind += 1
+
+                    pos_view[d_ind, coord_ind] = _bottom_left[coord_ind] + diff[coord_ind] *random_value
+
+                if _test_collisions(pos_sliced, radius_sliced, max_R):
+                    break  # No collisions, can move onto next disc
+
+                # Disc does have a collision, try again
+                attempt -= 1
+            else:
+                raise RuntimeError(f"Unable to place disc {d_ind - N_current_state} after {max_attempt} attempts.")
+        
+        return pos
+
+    def _add_random_disc_grid(self, N_discs, bottom_left, top_right, radius):
+        """
+        Computes positions for new discs using 'grid' method
+        
+        Parameters
+        ----------
+        N_discs : int
+            Number of discs to add.
+        bottom_left : np.ndarray
+            Bottom left corner of the box to add discs into.
+        top_right : np.ndarray
+            Top right corner of the box to add discs into.
+        radius : np.ndarray
+            Radii of the discs. Expected to have shape (N_discs,).
+
+        Raises
+        ------
+        RuntimeError
+            Raised if it failed to place a disc after 50 attempts. No new discs
+            are added to the simulation if this is raised.
+
+        Returns
+        -------
+        np.ndarray
+            An np.ndarray of shape (MN_discs, 2) with the positions of the 
+            discs, M is the number of previously added discs.
+        """
+        
+        N_current_state = self.current_state['m'].shape[0]
+
+        pos = np.empty((N_current_state + N_discs, 2), dtype=np.float64)
+        pos[:N_current_state] = self.current_state['r']
+
+        # Small margin so discs won't be touching bounds of requested box
+        R_max = np.max(radius[N_current_state:])
+        _bottom_left = bottom_left + R_max*1.001
+        _top_right = top_right - R_max*1.001
+        
+        # require n_per_side**2 >= N _discs
+        n_per_side = 1 + math.isqrt(N_discs-1)
+
+        x_pos = np.linspace(_bottom_left[0], _top_right[0], n_per_side)
+        y_pos = np.linspace(_bottom_left[1], _top_right[1], n_per_side)
+
+        xx, yy = np.meshgrid(x_pos, y_pos)
+
+        # In general we expect n_per_side**2 > N_discs, so we randomly 
+        # choose which positions on the grid to use
+        possible_positions = np.column_stack((xx.ravel(), yy.ravel()))
+
+        attempt = 0
+        max_attempt = 10
+
+        while attempt < max_attempt:
+            # select the positions for this attempt
+            selected_indices = np.random.choice(possible_positions.shape[0], N_discs, replace=False)
+            pos[N_current_state:] = possible_positions[selected_indices]
+
+            overlapping_discs = False
+
+            # Now check there aren't any discs overlapping
+            if n_per_side > 1:
+                dx, dy = x_pos[1] - x_pos[0], y_pos[1] - y_pos[0]
+
+                max_R = np.max(radius)
+
+                if dx > 2*max_R and dy > 2*max_R and N_current_state==0:
+                    # Guaranteed there are no overlapping discs
+                    break
+                else:
+                    for d_ind in range(N_current_state, N_current_state + N_discs):
+                        #d_pos = pos[d_ind]
+
+                        if not _test_collisions(pos[:d_ind+1], radius[:d_ind+1]):
+                            overlapping_discs = True
+                            break
+
+            # we've allocated positions to all discs without any overlapping
+            if not overlapping_discs:
+                break
+
+            attempt += 1
+        else:
+            raise RuntimeError(f"Unable to place discs on grid after {max_attempt} attempts")
+        
+        return pos
 
     # Properties
     @property
@@ -1034,6 +1194,8 @@ cdef class PySim():
 
             yield current_state
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def replay_by_time(self, double dt):
         """
         Replays the simulation advancing by timesteps dt. If the final event 
@@ -1065,14 +1227,25 @@ cdef class PySim():
 
         yield current_state
 
+        cdef double[:] g_view = self.g
+
         cdef size_t N_events = self.s.events.size()
+        cdef int N_discs = current_state['r'].shape[0]
         cdef size_t cur_event_ind = 0
-        cdef size_t cur_disc
-        cdef double current_t = 0.0
-        cdef double time_step
+        cdef size_t cur_disc_ind
 
         # Start time for the current period
         cdef int cur_period = 1
+
+        # current time each disc its current position, velocity etc. is valid for
+        cdef np.ndarray current_t = np.zeros(N_discs)
+        cdef double time_step        # time step used when advancing a single disc
+
+        cdef double[:] current_t_view = current_t
+
+        cdef double[:, :] r_view = current_state['r']
+        cdef double[:, :] v_view = current_state['v']
+        cdef double[:] w_view = current_state['w']
 
         # The inner loop corresponds to advancing one event at a time, the 
         # outer loop corresponds to advancing by dt
@@ -1081,28 +1254,32 @@ cdef class PySim():
             while cur_event_ind < N_events:
                 # Next event is in the current period
                 if self.s.events[cur_event_ind].t <= cur_period*dt:
+
+                    cur_disc_ind = self.s.events[cur_event_ind].ind
+
                     # advance to next event
-                    time_step = self.s.events[cur_event_ind].t - current_t
-                    current_t = self.s.events[cur_event_ind].t
+                    time_step = self.s.events[cur_event_ind].t - current_t_view[cur_disc_ind]
+                    current_t_view[cur_disc_ind] = self.s.events[cur_event_ind].t
 
-                    current_state['r'] += time_step*current_state['v'] + self.g*(time_step**2/2.0)
-                    current_state['v'] += self.g*time_step
-
-                    cur_disc = self.s.events[cur_event_ind].ind
-
-                    # Update the colliding particle accordingly
+                    # Update disc position, velocity & angular velocity
                     for ind in range(2):
-                        current_state['v'][cur_disc][ind] = self.s.events[cur_event_ind].new_v[ind]
+                        r_view[cur_disc_ind, ind] += time_step*v_view[cur_disc_ind, ind] + g_view[ind]*(time_step**2)/2.0
 
-                    # Update angular velocity
-                    current_state['w'][cur_disc] = self.s.events[cur_event_ind].new_w
+                    for ind in range(2):
+                         v_view[cur_disc_ind, ind] = self.s.events[cur_event_ind].new_v[ind]
+
+                    w_view[cur_disc_ind] = self.s.events[cur_event_ind].new_w
                 else:
                     # advance to end of time interval and break
-                    time_step = cur_period*dt - current_t
-                    current_t = cur_period*dt
+                    for disc_ind in range(N_discs):
+                        time_step = cur_period*dt - current_t_view[disc_ind]
 
-                    current_state['r'] += time_step*current_state['v'] + self.g*(time_step**2/2.0)
-                    current_state['v'] += self.g*time_step
+                        for ind in range(2):
+                            r_view[disc_ind, ind] += time_step*v_view[disc_ind, ind] + (g_view[ind]/2.0)*time_step*time_step
+                            v_view[disc_ind, ind] += g_view[ind]*time_step
+
+                    # Seems more performant to let numpy set current t, possibly due to SIMD
+                    current_t[...] = cur_period*dt
 
                     break
 

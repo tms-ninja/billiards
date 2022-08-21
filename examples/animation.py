@@ -43,10 +43,6 @@ s = bl.PySim(box_bottom_left, box_top_right, 9, 9)
 
 s.add_random_discs(np.array(box_bottom_left), np.array(box_top_right), 20, 1.0, 1.0, v=5.0)
 
-
-# Set up the simulation ready to be run
-s.setup()
-
 # Perform some collision
 s.advance(400, 100.0, True)
 
