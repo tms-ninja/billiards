@@ -23,6 +23,7 @@ import enum
 import math
 
 from cython_header cimport *
+cimport cython
 from cpython.ref cimport PyObject
 from libc.math cimport hypot
 
@@ -1193,6 +1194,8 @@ cdef class PySim():
 
             yield current_state
 
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
     def replay_by_time(self, double dt):
         """
         Replays the simulation advancing by timesteps dt. If the final event 
@@ -1236,8 +1239,7 @@ cdef class PySim():
 
         # current time each disc its current position, velocity etc. is valid for
         cdef np.ndarray current_t = np.zeros(N_discs)
-        cdef double single_time_step        # time step used when advancing a single disc
-        cdef np.ndarray array_time_step     # time step used when advancing all discs
+        cdef double time_step        # time step used when advancing a single disc
 
         cdef double[:] current_t_view = current_t
 
@@ -1256,12 +1258,12 @@ cdef class PySim():
                     cur_disc_ind = self.s.events[cur_event_ind].ind
 
                     # advance to next event
-                    single_time_step = self.s.events[cur_event_ind].t - current_t_view[cur_disc_ind]
+                    time_step = self.s.events[cur_event_ind].t - current_t_view[cur_disc_ind]
                     current_t_view[cur_disc_ind] = self.s.events[cur_event_ind].t
 
                     # Update disc position, velocity & angular velocity
                     for ind in range(2):
-                        r_view[cur_disc_ind, ind] += single_time_step*v_view[cur_disc_ind, ind] + g_view[ind]*(single_time_step**2)/2.0
+                        r_view[cur_disc_ind, ind] += time_step*v_view[cur_disc_ind, ind] + g_view[ind]*(time_step**2)/2.0
 
                     for ind in range(2):
                          v_view[cur_disc_ind, ind] = self.s.events[cur_event_ind].new_v[ind]
@@ -1269,13 +1271,15 @@ cdef class PySim():
                     w_view[cur_disc_ind] = self.s.events[cur_event_ind].new_w
                 else:
                     # advance to end of time interval and break
-                    array_time_step = (cur_period*dt - current_t)[:, np.newaxis]
-                    current_t[...] = cur_period*dt
+                    for disc_ind in range(N_discs):
+                        time_step = cur_period*dt - current_t_view[disc_ind]
 
-                    # Note: it seems better to use numpy here rather than cython
-                    # suspect it might be due to better SIMD vectorization, not sure
-                    current_state['r'] += array_time_step*current_state['v'] + (self.g/2.0)*array_time_step**2
-                    current_state['v'] += self.g*array_time_step
+                        for ind in range(2):
+                            r_view[disc_ind, ind] += time_step*v_view[disc_ind, ind] + (g_view[ind]/2.0)*time_step*time_step
+                            v_view[disc_ind, ind] += g_view[ind]*time_step
+
+                    # Seems more performant to let numpy set current t, possibly due to SIMD
+                    current_t[...] = cur_period*dt
 
                     break
 
