@@ -508,7 +508,6 @@ Function for solving collision detection i.e. Eq.~\ref{eq:wall_collision_sol_g_z
         \item Vector to store the events that occur during the simulation, if desired
         \item Current time of the simulation
         \item A method to advance the simulation by either a given number of events or duration, whichever is reached sooner, should have a member variable to set whether the events should be stored or only the current state should be stored
-        \item A setup method to set the simulation as ready to start. In effect, copies the current state to the initial state variable.
     \end{itemize}
 \end{itemize}
 
@@ -536,8 +535,7 @@ Here we detail the structure of the Cython wrapper and interface to Python.
     \end{itemize}
     \item \texttt{PySim} wrapper for \texttt{Sim}.
     \begin{itemize}
-        \item Should expose member variables as properties using python lists
-        \item Method \texttt{setup()} to be called before running the simulation but after discs/walls have been added. Ensures the \texttt{Sim} object is internally set up appropriately.
+        \item Should expose member variables as properties
         \item Method \texttt{advance()} to advance the simulation by either a given number of collisions or duration, whichever is reached first.
         \item Methods \texttt{add\_disc()} and \texttt{add\_wall()} for adding discs/walls to the simulation individually
         \item Method \texttt{add\_random\_discs()} for adding discs in bulk randomly in a box, all with the given parameters e.g. mass, radius etc.
