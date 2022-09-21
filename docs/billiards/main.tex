@@ -653,29 +653,17 @@ Here we detail the structure of the Cython wrapper and interface to Python.
     \end{itemize}
 \end{itemize}
 
-\subsection{Initial algorithm}
-Initially we'll implement an inefficient $\mathcal{O}(N^2)$ algorithm as follows:
-\begin{enumerate}
-    \item Store a list of the last event that occurred and any others that occurred at the same time. This could be due to a particle colliding with the corner of a box and colliding with two walls at the same time
-    \item Iterate over all possible disc-wall and disc-disc collisions. Find the one with the smallest positive time till collision.
-    \item Now we know the next collision, advance all particles (if necessary) to the time of collision
-    \item Perform the appropriate type of collision on the disc or discs
-    \item Repeat until the maximum number of collisions is reached or maximum duration is reached.
-\end{enumerate}
-The above doesn't account for what to do if a disc undergoes two collisions at the same time, but it'll be enough to check the basic physics of checking for collisions and performing collisions are done correctly.
-
-\subsection{A more efficient approach}
-A more efficient approach is described in \cite{Lubachevsky-1991}. Roughly, for each particle the algorithm keeps track of two events, The last collision the particle experienced and the next scheduled collision in the future. The algorithm iterates by:
+\subsection{Algorithm}
+We implement the approach described in \cite{Lubachevsky-1991}. Roughly, for each particle the algorithm keeps track of two events, The last collision the particle experienced and its next scheduled collision. The algorithm iterates by:
 \begin{itemize}
     \item Determining the particle with the next scheduled event
     \item Making the scheduled event the most recent event the particle underwent 
     \item Determining the next collision of the particle and scheduling it
     \item If the next collision is disc-disc, appropriately scheduling the partner's new collision
 \end{itemize}
-The main computational effort is spent in determining the next collision and the next scheduled event. Determining the next time can be found in $\mathcal{O}(\log N)$ using a heap as suggested in \cite{Lubachevsky-1991}, whereas determining the next collision can be improved partitioning space into sectors.
+The main computational effort is spent in determining the next collision and the next scheduled event. Determining the next time can be found in $\mathcal{O}(\log N)$ using a heap as suggested in \cite{Lubachevsky-1991}, whereas determining the next collision can be improved by partitioning space into sectors.
 
-\subsection{Dividing the space into sectors}
-In this method, the space the particles occupy is split into sectors, each of which should be large enough to fully contain the disc. Only the sector the disc is currently in and those adjacent to it (8 if using squares) need to be checked to determine the next possible disc-disc collision. Similarly, only sectors adjacent to a wall need to check for disc-wall interactions.
+Billiards implements rectangular sectors, each of which should be large enough to fully contain any disc in the simulation. Ideally sectors should be sized so roughly one discs is in each sector. Only the sector the disc is currently in and those adjacent to it (8 for rectangles) need to be checked to determine the next possible disc-disc collision. Similarly, only sectors adjacent to a wall need to be checked for disc-wall interactions. There is some overhead as collision with sector boundaries must be checked and the current sector of each disc tracked. However, for large numbers of discs the reduced number of disc-disc or disc-wall collisions that need to be checked far outweighs this overhead.
 
 % Bibliography
 \bibliographystyle{ieeetr}
