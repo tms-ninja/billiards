@@ -614,38 +614,26 @@ Function for solving collision detection i.e. Eq.~\ref{eq:wall_collision_sol_g_z
 We also intend to produce a Cython wrapper to run and analyse the results from a simulation in Python. Initially, we'll implement a simple but inefficient algorithm for checking collisions but later we'll do something more advanced.
 
 \subsection{Cython wrapper}
-Here we detail the structure of the Cython wrapper and interface to Python.
+Here we summarise the structure of the Cython wrapper and interface to Python. For full details, see the documentation in \texttt{billiards.pyx}.
 \begin{itemize}
-    \item Cython needs to be told about \texttt{Vec2D}, but it doesn't need a wrapper provided to Python
-    \item \texttt{PyDisc} wrapper for \texttt{Disc}. It does not own the memory, that is owned by the C++ \texttt{Sim}.
-    \begin{itemize}
-        \item Exposes the member variables of a \texttt{Disc} such as mass, radius etc. as properties
-        \item Position and velocity should be exposed as \texttt{numpy} arrays wit shape \texttt{(2,)}
-        \item Wraps the position method to compute position at time $t$
-    \end{itemize}
-    \item \texttt{PyWall} wrapper for \texttt{Wall}. It does not own the memory, that is owned by the C++ \texttt{Sim}.
-    \begin{itemize}
-        \item Exposes the start and end member variables of a \texttt{Wall} as properties, specifically as \texttt{numpy} arrays with shape \texttt{(2,)}
-    \end{itemize}
     \item \texttt{PyEvent} wraps \texttt{Event}. It does not own the memory, that is owned by the C++ \texttt{Sim}.
     \begin{itemize}
-        \item Exposes the member variables of an \texttt{Event} such as mass, radius etc. as properties
-        \item New position and velocity should be exposed as \texttt{numpy} arrays with shape \texttt{(2,)}
+        \item Exposes the member variables of an \texttt{Event} such as time, position etc. as properties
+        \item New position and velocity are exposed as \texttt{numpy} arrays with shape \texttt{(2,)}
         \item Factory static method for creation from a \texttt{PySim} instance and index of event
     \end{itemize}
     \item \texttt{PySim} wrapper for \texttt{Sim}.
     \begin{itemize}
-        \item Should expose member variables as properties
         \item Method \texttt{advance()} to advance the simulation by either a given number of collisions or duration, whichever is reached first.
         \item Methods \texttt{add\_disc()} and \texttt{add\_wall()} for adding discs/walls to the simulation individually
         \item Method \texttt{add\_random\_discs()} for adding discs in bulk randomly in a box, all with the given parameters e.g. mass, radius etc.
-        \item Method \texttt{add\_box\_walls()} for adding four walls in the shape of a box, defined by the position of the bottom-left and top-right corners.
-        \item Although we expose discs as a python list, for analysis it may be more useful to access properties as \texttt{numpy} arrays. So we'll have a method that accepts certain parameters and returns a dictionary of \texttt{numpy} arrays corresponding to those parameters.
+        \item Method \texttt{add\_box\_walls()} for adding four walls in the shape of a box, defined by the position of the bottom-left and top-right corners. Should not currently be used as disc collisions wit wall end points are not modelled.
         \item Property \texttt{initial\_state} to return the initial state of the system as a "state dictionary." Returns a dictionary where the keys correspond to names of disc properties (position, velocity, mass, etc.) and values are those properties as \texttt{numpy} arrays.
         \item Property \texttt{current\_state} that behaves the same as \texttt{initial\_state} but returns a state dictionary for the current state of the simulation.
+        \item Properties for coefficients of normal/tangential restitution and $\vec{g}$
         \item Two generators for replaying the simulation
         \begin{itemize}
-            \item These start at the beginning of the simulation and yield the same state dictionary of \texttt{numpy} arrays the properties for \texttt{initial\_state} and \texttt{current\_state} do
+            \item These start at the beginning of the simulation and yield the same state dictionary of \texttt{numpy} arrays as \texttt{initial\_state} and \texttt{current\_state}
             \item The arrays in this dictionary are successively updated by reference
             \item \texttt{replay\_by\_event()} for moving forward from one event to the next
             \item \texttt{replay\_by\_time()} for moving forward at constant time intervals, useful for making an animation
