@@ -580,17 +580,16 @@ The expected speed distribution is then,
 \end{equation}
 
 \section{Program structure}
-Function for solving collision detection i.e. Eq.~\ref{eq:wall_collision_sol_g_zero} etc.
+Here we describe a rough outline of the structure of Billiards. The simulation itself is written in C++ and a Cython wrapper allows the simulation code to be setup, called \& analysed from Python. On the C++ side, we have:
 
 \begin{itemize}
-    \item A \texttt{Vec2D} class to represent a 2 dimensional vector.
+    \item A \texttt{Vec2D} class to represent a 2 dimensional real vector.
     \begin{itemize}
-        \item Include methods for magnitude, magnitude squared and dot product
+        \item Includes methods for magnitude, magnitude squared and dot product
     \end{itemize}
     \item A \texttt{Disc} class to represent a disc
     \begin{itemize}
-        \item Stores position, velocity, mass and radius
-        \item If rotation is implemented, it will also need to include angular velocity and moment of inertia
+        \item Stores position, velocity, mass, radius etc.
     \end{itemize}
     \item A \texttt{Wall} class to represent a straight wall a particle can bounce off
     \begin{itemize}
@@ -599,7 +598,7 @@ Function for solving collision detection i.e. Eq.~\ref{eq:wall_collision_sol_g_z
     \end{itemize}
     \item An \texttt{Event} class to represent either a disc-wall or disc-disc collision
     \begin{itemize}
-        \item Store index of the disc in the simulation's vector of discs, along with time of event, current position and new velocity
+        \item Stores index of the disc in the simulation's vector of discs, along with time of event, current position, new velocity/angular velocity, partner index etc.
     \end{itemize}
     \item A \texttt{Sim} class to represent a simulation
     \begin{itemize}
@@ -607,11 +606,11 @@ Function for solving collision detection i.e. Eq.~\ref{eq:wall_collision_sol_g_z
         \item Vector to store the walls in the simulation
         \item Vector to store the events that occur during the simulation, if desired
         \item Current time of the simulation
-        \item A method to advance the simulation by either a given number of events or duration, whichever is reached sooner, should have a member variable to set whether the events should be stored or only the current state should be stored
+        \item A method \texttt{advance()} to advance the simulation by either a given number of events or duration, whichever is reached sooner, should have an argument to set whether the events should be stored or only the current state should be stored
+        \item A method \texttt{Add\_disc()} to add a disc to the simulation
+        \item Getter/setter methods to get/set coefficients of normal/tangential restitution and the gravitational vector
     \end{itemize}
 \end{itemize}
-
-We also intend to produce a Cython wrapper to run and analyse the results from a simulation in Python. Initially, we'll implement a simple but inefficient algorithm for checking collisions but later we'll do something more advanced.
 
 \subsection{Cython wrapper}
 Here we summarise the structure of the Cython wrapper and interface to Python. For full details, see the documentation in \texttt{billiards.pyx}.
