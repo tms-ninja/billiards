@@ -38,7 +38,7 @@
 \maketitle
 
 \section{Introduction}
-We are interested in modelling a two dimensional gas by modelling motions of individual particles that experience elastic collisions. We then hope to extract some interesting physics from such a simulation, such as showing speed distribution is a Maxwell-Boltzmann, computing the heat capacity and show it follows the ideal gas equation. We will first consider a model using non-rotating discs, though we may relax this later.
+Billiards aims to model a two dimensional gas by directly modelling motions of individual particles and the collisions between them. We then hope to extract some interesting physics from such a simulation, such as showing speed distribution is a Maxwell-Boltzmann, computing the heat capacity and explore its equation of state.
 
 There are two approaches to such a simulation. A time driven approach is the most simplest, where we advance the simulation forward by a small time increment $\diff t$ and then check for and perform any collisions that took place during $\diff t$. This approach is simple to understand and implement but has some drawbacks, namely:
 \begin{itemize}
@@ -55,9 +55,7 @@ However, unlike many N-body simulation, each particle only experiences a force d
     \item Repeat
 \end{itemize}
 
-This approach has several advantages, we cannot have issues with fast moving particles skipping collisions and we don't have to perform many iterations where no collisions occurred where one larger jump is sufficient. It can also deal with simple forces acting on particles such that their trajectory between collisions is known beforehand, e.g. constant gravity. However it is more complex to implement and cannot deal with more complicated forces, e.g. Newtonian gravity.
-
-We will implement the event-driven approach, first using an inefficient $\mathcal{O}(N^2)$ approach and then seek a more efficient solution.
+This approach has several advantages, we cannot have issues with fast moving particles skipping collisions and we don't have to perform many iterations where no collisions occurred where one larger jump is sufficient. It can also deal with simple forces acting on particles such that their trajectory between collisions is known beforehand, e.g. constant gravity. However it is more complex to implement and cannot deal with more complicated forces, e.g. Newtonian gravity. Since Billiards does not aim to model complicated forces, it uses the event-driven approach.
 
 \section{Theory}
 
