@@ -477,7 +477,109 @@ A disc-wall collision can be modelled as a disc-disc collision where the disc th
 \end{equation}
 where $\vec{g} = \vec{v} + R \vec{\omega} \times \hat{\vec{\sigma}}$ and $\hat{\vec{\sigma}}$ is a unit vector pointing from the centre of the disc to the point on it's surface colliding with the wall.
 
-\subsection{Insights from statistical physics}
+\section{Insights from statistical mechanics}
+Here we discuss some of the macroscopic physics of a system of billiards. We leave a discussion of the effects of gravity for later.
+
+The partition function for a N-body system can be written as,
+\begin{equation}
+    Z_N
+    =
+    \frac{1}{h^{3N} N!}
+    \int \diff^2 \vec{q}_1 ... \diff^2 \vec{q}_N \, \diff^2 \vec{p}_1 ... \diff^2 \vec{p}_N \,
+    \exp{\left(
+        - \beta \, \mathcal{H}(\vec{q}_1,..., \vec{q}_N, \vec{p}_1, ..., \vec{p}_N)
+    \right)},
+\end{equation}
+where $\beta = \frac{1}{k_B T}$. The Hamiltonian can be written as,
+\begin{equation}
+    \mathcal{H}(\vec{q}_1,..., \vec{q}_N, \vec{p}_1, ..., \vec{p}_N)
+    =
+    \sum_{j=1}^N \frac{p_j^2}{2m}
+    +
+    U(\vec{q}_1,..., \vec{q}_N),
+\end{equation}
+where $U(\vec{q}_1,..., \vec{q}_N)$ si,
+\begin{equation}
+    U(\vec{q}_1,..., \vec{q}_N)
+    =
+    \begin{cases}
+       \infty & \text{if any } |\vec{q}_i - \vec{q}_j|< 2 R \\
+       \infty & \text{if any disc is penetrating a wall} \\
+       0 & \text{otherwise}
+    \end{cases}.
+\end{equation}
+The partition function can then be rewritten as,
+\begin{align}
+\label{eq:partition_function_simplified}
+    Z_N
+    &=
+    \frac{V^N Q}{h^{3N} N!}
+    \left(
+        \int \diff^2 \vec{p} \, \exp{
+        \left(- \frac{\beta p^2}{2m} \right)}
+    \right)^N, \\
+    &=
+    \frac{V^N Q}{h^{3N} N!}
+    \left(
+        \frac{2 \pi m}{\beta}
+    \right)^N
+\end{align}
+where $Q$ is the configuration integral,
+\begin{equation}
+\label{eq:configuration_integral}
+    \frac{1}{V^N}\int \diff^2 \vec{q}_1 ... \diff^2 \vec{q}_N \,
+    \exp{\left( -\beta \, U(\vec{q}_1, ..., \vec{q}_N) \right)},
+\end{equation}
+which is taken over the container the gas is in. 
+
+\subsection{Equation of state}
+Evaluating $Q$ is highly non-trivial, so we approximate the equation of state at low densities using the virial expansion,
+\begin{equation}
+    \frac{pV}{N k_B T}
+    =
+    1
+    +
+    \sum_{k=2}^\infty B_k(T) \left( \frac{N}{V} \right)^{k-1}.
+\end{equation}
+In two dimensions, the first virial coefficients for hard disks of area $A$ are \cite{virial-coeff},
+\begin{align}
+    B_2(T) = 2A,
+    &&
+    B_3(T) = \left( \frac{16}{3} - \frac{4 \sqrt{3}}{\pi} \right) A^2,
+    &&
+    B_4(T) = \left( 16 - \frac{36 \sqrt{3}}{\pi} + \frac{80}{\pi^2} \right) A^3.
+\end{align}
+
+\subsection{Speed distribution}
+The probability of the system occupying a given state $(\vec{q}_1, .., \vec{q}_N, \vec{p}_1, ..., \vec{p}_N)$ is,
+\begin{equation}
+    P(\vec{q}_1, ..., \vec{q}_N, \vec{p}_1, ..., \vec{p}_N) \, \diff \Phi
+    =
+    \frac{\exp{\left(
+        - \beta \, \mathcal{H}(\vec{q}_1,..., \vec{q}_N, \vec{p}_1, ..., \vec{p}_N)
+    \right)}}{Z_N} \,
+    \diff \Phi,
+\end{equation}
+where $\diff \Phi =\diff^2 \vec{q}_1 ... \diff^2 \, \vec{q}_N  \diff^2 \vec{p}_1 ... \diff^2 \vec{p}_N$. We can determine the momentum distribution by integrating over all $\vec{q}_1,..., \vec{q}_N$ and $\vec{p}_2, ..., \vec{p}_N$ and then integrating out the angular dependence using $\diff^2 \vec{p} = \diff p \diff \theta p$. Dropping the subscript 1 produces,
+\begin{align}
+    P(p) \, \diff p
+    &=
+    \left(
+        \frac{\beta}{2 \pi m}
+    \right) \diff p
+    \int \diff \theta \,
+    p
+    \exp{\left( -\frac{\beta p^2}{2m} \right)}, \\
+    &=
+    \frac{\beta p}{m}
+    \exp{\left( -\frac{\beta p^2}{2m} \right)} \diff p.
+\end{align}
+The expected speed distribution is then,
+\begin{equation}
+    P(v) \, \diff v
+    =
+    \beta m v \exp{\left( -\frac{\beta p^2}{2m} \right)} \diff v.
+\end{equation}
 
 \section{Program structure}
 Function for solving collision detection i.e. Eq.~\ref{eq:wall_collision_sol_g_zero} etc.
