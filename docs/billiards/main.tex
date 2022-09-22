@@ -558,7 +558,7 @@ The probability of the system occupying a given state $(\vec{q}_1, .., \vec{q}_N
     \right)}}{Z_N} \,
     \diff \Phi,
 \end{equation}
-where $\diff \Phi =\diff^2 \vec{q}_1 ... \diff^2 \, \vec{q}_N  \diff^2 \vec{p}_1 ... \diff^2 \vec{p}_N$. We can determine the momentum distribution by integrating over all $\vec{q}_1,..., \vec{q}_N$ and $\vec{p}_2, ..., \vec{p}_N$ and then integrating out the angular dependence using $\diff^2 \vec{p} = \diff p \diff \theta p$. Dropping the subscript 1 produces,
+where $\diff \Phi =\diff^2 \vec{q}_1 ... \diff^2 \vec{q}_N \, \diff^2 \vec{p}_1 ... \diff^2 \vec{p}_N$. We can determine the momentum distribution by integrating over all $\vec{q}_1,..., \vec{q}_N$ and $\vec{p}_2, ..., \vec{p}_N$ and then integrating out the angular dependence using $\diff^2 \vec{p} = \diff p \, \diff \theta p$. Dropping the subscript 1 produces,
 \begin{align}
     P(p) \, \diff p
     &=
@@ -576,7 +576,7 @@ The expected speed distribution is then,
 \begin{equation}
     P(v) \, \diff v
     =
-    \beta m v \exp{\left( -\frac{\beta p^2}{2m} \right)} \diff v.
+    \beta m v \exp{\left( -\frac{\beta m v^2}{2} \right)} \diff v.
 \end{equation}
 
 \section{Program structure}
