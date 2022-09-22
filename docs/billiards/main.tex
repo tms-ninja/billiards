@@ -38,7 +38,7 @@
 \maketitle
 
 \section{Introduction}
-We are interested in modelling a two dimensional gas by modelling motions of individual particles that experience elastic collisions. We then hope to extract some interesting physics from such a simulation, such as showing speed distribution is a Maxwell-Boltzmann, computing the heat capacity and show it follows the ideal gas equation. We will first consider a model using non-rotating discs, though we may relax this later.
+Billiards aims to model a two dimensional gas by directly modelling motions of individual particles and the collisions between them. We then hope to extract some interesting physics from such a simulation, such as showing speed distribution is a Maxwell-Boltzmann, computing the heat capacity and explore its equation of state.
 
 There are two approaches to such a simulation. A time driven approach is the most simplest, where we advance the simulation forward by a small time increment $\diff t$ and then check for and perform any collisions that took place during $\diff t$. This approach is simple to understand and implement but has some drawbacks, namely:
 \begin{itemize}
@@ -55,9 +55,7 @@ However, unlike many N-body simulation, each particle only experiences a force d
     \item Repeat
 \end{itemize}
 
-This approach has several advantages, we cannot have issues with fast moving particles skipping collisions and we don't have to perform many iterations where no collisions occurred where one larger jump is sufficient. It can also deal with simple forces acting on particles such that their trajectory between collisions is known beforehand, e.g. constant gravity. However it is more complex to implement and cannot deal with more complicated forces, e.g. Newtonian gravity.
-
-We will implement the event-driven approach, first using an inefficient $\mathcal{O}(N^2)$ approach and then seek a more efficient solution.
+This approach has several advantages, we cannot have issues with fast moving particles skipping collisions and we don't have to perform many iterations where no collisions occurred where one larger jump is sufficient. It can also deal with simple forces acting on particles such that their trajectory between collisions is known beforehand, e.g. constant gravity. However it is more complex to implement and cannot deal with more complicated forces, e.g. Newtonian gravity. Since Billiards does not aim to model complicated forces, it uses the event-driven approach.
 
 \section{Theory}
 
@@ -477,20 +475,121 @@ A disc-wall collision can be modelled as a disc-disc collision where the disc th
 \end{equation}
 where $\vec{g} = \vec{v} + R \vec{\omega} \times \hat{\vec{\sigma}}$ and $\hat{\vec{\sigma}}$ is a unit vector pointing from the centre of the disc to the point on it's surface colliding with the wall.
 
-\subsection{Insights from statistical physics}
+\section{Insights from statistical mechanics}
+Here we discuss some of the macroscopic physics of a system of billiards. We leave a discussion of the effects of gravity for later.
+
+The partition function for a N-body system can be written as,
+\begin{equation}
+    Z_N
+    =
+    \frac{1}{h^{3N} N!}
+    \int \diff^2 \vec{q}_1 ... \diff^2 \vec{q}_N \, \diff^2 \vec{p}_1 ... \diff^2 \vec{p}_N \,
+    \exp{\left(
+        - \beta \, \mathcal{H}(\vec{q}_1,..., \vec{q}_N, \vec{p}_1, ..., \vec{p}_N)
+    \right)},
+\end{equation}
+where $\beta = \frac{1}{k_B T}$. The Hamiltonian can be written as,
+\begin{equation}
+    \mathcal{H}(\vec{q}_1,..., \vec{q}_N, \vec{p}_1, ..., \vec{p}_N)
+    =
+    \sum_{j=1}^N \frac{p_j^2}{2m}
+    +
+    U(\vec{q}_1,..., \vec{q}_N),
+\end{equation}
+where $U(\vec{q}_1,..., \vec{q}_N)$ si,
+\begin{equation}
+    U(\vec{q}_1,..., \vec{q}_N)
+    =
+    \begin{cases}
+       \infty & \text{if any } |\vec{q}_i - \vec{q}_j|< 2 R \\
+       \infty & \text{if any disc is penetrating a wall} \\
+       0 & \text{otherwise}
+    \end{cases}.
+\end{equation}
+The partition function can then be rewritten as,
+\begin{align}
+\label{eq:partition_function_simplified}
+    Z_N
+    &=
+    \frac{V^N Q}{h^{3N} N!}
+    \left(
+        \int \diff^2 \vec{p} \, \exp{
+        \left(- \frac{\beta p^2}{2m} \right)}
+    \right)^N, \\
+    &=
+    \frac{V^N Q}{h^{3N} N!}
+    \left(
+        \frac{2 \pi m}{\beta}
+    \right)^N
+\end{align}
+where $Q$ is the configuration integral,
+\begin{equation}
+\label{eq:configuration_integral}
+    \frac{1}{V^N}\int \diff^2 \vec{q}_1 ... \diff^2 \vec{q}_N \,
+    \exp{\left( -\beta \, U(\vec{q}_1, ..., \vec{q}_N) \right)},
+\end{equation}
+which is taken over the container the gas is in. 
+
+\subsection{Equation of state}
+Evaluating $Q$ is highly non-trivial, so we approximate the equation of state at low densities using the virial expansion,
+\begin{equation}
+    \frac{pV}{N k_B T}
+    =
+    1
+    +
+    \sum_{k=2}^\infty B_k(T) \left( \frac{N}{V} \right)^{k-1}.
+\end{equation}
+In two dimensions, the first virial coefficients for hard disks of area $A$ are \cite{virial-coeff},
+\begin{align}
+    B_2(T) = 2A,
+    &&
+    B_3(T) = \left( \frac{16}{3} - \frac{4 \sqrt{3}}{\pi} \right) A^2,
+    &&
+    B_4(T) = \left( 16 - \frac{36 \sqrt{3}}{\pi} + \frac{80}{\pi^2} \right) A^3.
+\end{align}
+
+\subsection{Speed distribution}
+The probability of the system occupying a given state $(\vec{q}_1, .., \vec{q}_N, \vec{p}_1, ..., \vec{p}_N)$ is,
+\begin{equation}
+    P(\vec{q}_1, ..., \vec{q}_N, \vec{p}_1, ..., \vec{p}_N) \, \diff \Phi
+    =
+    \frac{\exp{\left(
+        - \beta \, \mathcal{H}(\vec{q}_1,..., \vec{q}_N, \vec{p}_1, ..., \vec{p}_N)
+    \right)}}{Z_N} \,
+    \diff \Phi,
+\end{equation}
+where $\diff \Phi =\diff^2 \vec{q}_1 ... \diff^2 \, \vec{q}_N  \diff^2 \vec{p}_1 ... \diff^2 \vec{p}_N$. We can determine the momentum distribution by integrating over all $\vec{q}_1,..., \vec{q}_N$ and $\vec{p}_2, ..., \vec{p}_N$ and then integrating out the angular dependence using $\diff^2 \vec{p} = \diff p \diff \theta p$. Dropping the subscript 1 produces,
+\begin{align}
+    P(p) \, \diff p
+    &=
+    \left(
+        \frac{\beta}{2 \pi m}
+    \right) \diff p
+    \int \diff \theta \,
+    p
+    \exp{\left( -\frac{\beta p^2}{2m} \right)}, \\
+    &=
+    \frac{\beta p}{m}
+    \exp{\left( -\frac{\beta p^2}{2m} \right)} \diff p.
+\end{align}
+The expected speed distribution is then,
+\begin{equation}
+    P(v) \, \diff v
+    =
+    \beta m v \exp{\left( -\frac{\beta p^2}{2m} \right)} \diff v.
+\end{equation}
 
 \section{Program structure}
-Function for solving collision detection i.e. Eq.~\ref{eq:wall_collision_sol_g_zero} etc.
+Here we describe a rough outline of the structure of Billiards. The simulation itself is written in C++ and a Cython wrapper allows the simulation code to be setup, called \& analysed from Python. On the C++ side, we have:
 
 \begin{itemize}
-    \item A \texttt{Vec2D} class to represent a 2 dimensional vector.
+    \item A \texttt{Vec2D} class to represent a 2 dimensional real vector.
     \begin{itemize}
-        \item Include methods for magnitude, magnitude squared and dot product
+        \item Includes methods for magnitude, magnitude squared and dot product
     \end{itemize}
     \item A \texttt{Disc} class to represent a disc
     \begin{itemize}
-        \item Stores position, velocity, mass and radius
-        \item If rotation is implemented, it will also need to include angular velocity and moment of inertia
+        \item Stores position, velocity, mass, radius etc.
     \end{itemize}
     \item A \texttt{Wall} class to represent a straight wall a particle can bounce off
     \begin{itemize}
@@ -499,7 +598,7 @@ Function for solving collision detection i.e. Eq.~\ref{eq:wall_collision_sol_g_z
     \end{itemize}
     \item An \texttt{Event} class to represent either a disc-wall or disc-disc collision
     \begin{itemize}
-        \item Store index of the disc in the simulation's vector of discs, along with time of event, current position and new velocity
+        \item Stores index of the disc in the simulation's vector of discs, along with time of event, current position, new velocity/angular velocity, partner index etc.
     \end{itemize}
     \item A \texttt{Sim} class to represent a simulation
     \begin{itemize}
@@ -507,47 +606,33 @@ Function for solving collision detection i.e. Eq.~\ref{eq:wall_collision_sol_g_z
         \item Vector to store the walls in the simulation
         \item Vector to store the events that occur during the simulation, if desired
         \item Current time of the simulation
-        \item A method to advance the simulation by either a given number of events or duration, whichever is reached sooner, should have a member variable to set whether the events should be stored or only the current state should be stored
-        \item A setup method to set the simulation as ready to start. In effect, copies the current state to the initial state variable.
+        \item A method \texttt{advance()} to advance the simulation by either a given number of events or duration, whichever is reached sooner, should have an argument to set whether the events should be stored or only the current state should be stored
+        \item A method \texttt{add\_disc()} to add a disc to the simulation
+        \item Getter/setter methods to get/set coefficients of normal/tangential restitution and the gravitational vector
     \end{itemize}
 \end{itemize}
 
-We also intend to produce a Cython wrapper to run and analyse the results from a simulation in Python. Initially, we'll implement a simple but inefficient algorithm for checking collisions but later we'll do something more advanced.
-
 \subsection{Cython wrapper}
-Here we detail the structure of the Cython wrapper and interface to Python.
+Here we summarise the structure of the Cython wrapper and interface to Python. For full details, see the documentation in \texttt{billiards.pyx}.
 \begin{itemize}
-    \item Cython needs to be told about \texttt{Vec2D}, but it doesn't need a wrapper provided to Python
-    \item \texttt{PyDisc} wrapper for \texttt{Disc}. It does not own the memory, that is owned by the C++ \texttt{Sim}.
-    \begin{itemize}
-        \item Exposes the member variables of a \texttt{Disc} such as mass, radius etc. as properties
-        \item Position and velocity should be exposed as \texttt{numpy} arrays wit shape \texttt{(2,)}
-        \item Wraps the position method to compute position at time $t$
-    \end{itemize}
-    \item \texttt{PyWall} wrapper for \texttt{Wall}. It does not own the memory, that is owned by the C++ \texttt{Sim}.
-    \begin{itemize}
-        \item Exposes the start and end member variables of a \texttt{Wall} as properties, specifically as \texttt{numpy} arrays with shape \texttt{(2,)}
-    \end{itemize}
     \item \texttt{PyEvent} wraps \texttt{Event}. It does not own the memory, that is owned by the C++ \texttt{Sim}.
     \begin{itemize}
-        \item Exposes the member variables of an \texttt{Event} such as mass, radius etc. as properties
-        \item New position and velocity should be exposed as \texttt{numpy} arrays with shape \texttt{(2,)}
+        \item Exposes the member variables of an \texttt{Event} such as time, position etc. as properties
+        \item New position and velocity are exposed as NumPy arrays with shape \texttt{(2,)}
         \item Factory static method for creation from a \texttt{PySim} instance and index of event
     \end{itemize}
     \item \texttt{PySim} wrapper for \texttt{Sim}.
     \begin{itemize}
-        \item Should expose member variables as properties using python lists
-        \item Method \texttt{setup()} to be called before running the simulation but after discs/walls have been added. Ensures the \texttt{Sim} object is internally set up appropriately.
         \item Method \texttt{advance()} to advance the simulation by either a given number of collisions or duration, whichever is reached first.
         \item Methods \texttt{add\_disc()} and \texttt{add\_wall()} for adding discs/walls to the simulation individually
         \item Method \texttt{add\_random\_discs()} for adding discs in bulk randomly in a box, all with the given parameters e.g. mass, radius etc.
-        \item Method \texttt{add\_box\_walls()} for adding four walls in the shape of a box, defined by the position of the bottom-left and top-right corners.
-        \item Although we expose discs as a python list, for analysis it may be more useful to access properties as \texttt{numpy} arrays. So we'll have a method that accepts certain parameters and returns a dictionary of \texttt{numpy} arrays corresponding to those parameters.
-        \item Property \texttt{initial\_state} to return the initial state of the system as a "state dictionary." Returns a dictionary where the keys correspond to names of disc properties (position, velocity, mass, etc.) and values are those properties as \texttt{numpy} arrays.
+        \item Method \texttt{add\_box\_walls()} for adding four walls in the shape of a box, defined by the position of the bottom-left and top-right corners. Should not currently be used as disc collisions wit wall end points are not modelled.
+        \item Property \texttt{initial\_state} to return the initial state of the system as a "state dictionary." Returns a dictionary where the keys correspond to names of disc properties (position, velocity, mass, etc.) and values are those properties as NumPy arrays.
         \item Property \texttt{current\_state} that behaves the same as \texttt{initial\_state} but returns a state dictionary for the current state of the simulation.
+        \item Properties for coefficients of normal/tangential restitution and $\vec{g}$
         \item Two generators for replaying the simulation
         \begin{itemize}
-            \item These start at the beginning of the simulation and yield the same state dictionary of \texttt{numpy} arrays the properties for \texttt{initial\_state} and \texttt{current\_state} do
+            \item These start at the beginning of the simulation and yield the same state dictionary of NumPy arrays as \texttt{initial\_state} and \texttt{current\_state}
             \item The arrays in this dictionary are successively updated by reference
             \item \texttt{replay\_by\_event()} for moving forward from one event to the next
             \item \texttt{replay\_by\_time()} for moving forward at constant time intervals, useful for making an animation
@@ -555,29 +640,17 @@ Here we detail the structure of the Cython wrapper and interface to Python.
     \end{itemize}
 \end{itemize}
 
-\subsection{Initial algorithm}
-Initially we'll implement an inefficient $\mathcal{O}(N^2)$ algorithm as follows:
-\begin{enumerate}
-    \item Store a list of the last event that occurred and any others that occurred at the same time. This could be due to a particle colliding with the corner of a box and colliding with two walls at the same time
-    \item Iterate over all possible disc-wall and disc-disc collisions. Find the one with the smallest positive time till collision.
-    \item Now we know the next collision, advance all particles (if necessary) to the time of collision
-    \item Perform the appropriate type of collision on the disc or discs
-    \item Repeat until the maximum number of collisions is reached or maximum duration is reached.
-\end{enumerate}
-The above doesn't account for what to do if a disc undergoes two collisions at the same time, but it'll be enough to check the basic physics of checking for collisions and performing collisions are done correctly.
-
-\subsection{A more efficient approach}
-A more efficient approach is described in \cite{Lubachevsky-1991}. Roughly, for each particle the algorithm keeps track of two events, The last collision the particle experienced and the next scheduled collision in the future. The algorithm iterates by:
+\subsection{Algorithm}
+We implement the approach described in \cite{Lubachevsky-1991}. Roughly, for each particle the algorithm keeps track of two events, The last collision the particle experienced and its next scheduled collision. The algorithm iterates by:
 \begin{itemize}
     \item Determining the particle with the next scheduled event
     \item Making the scheduled event the most recent event the particle underwent 
     \item Determining the next collision of the particle and scheduling it
     \item If the next collision is disc-disc, appropriately scheduling the partner's new collision
 \end{itemize}
-The main computational effort is spent in determining the next collision and the next scheduled event. Determining the next time can be found in $\mathcal{O}(\log N)$ using a heap as suggested in \cite{Lubachevsky-1991}, whereas determining the next collision can be improved partitioning space into sectors.
+The main computational effort is spent in determining the next collision and the next scheduled event. Determining the next time can be found in $\mathcal{O}(\log N)$ using a heap as suggested in \cite{Lubachevsky-1991}, whereas determining the next collision can be improved by partitioning space into sectors.
 
-\subsection{Dividing the space into sectors}
-In this method, the space the particles occupy is split into sectors, each of which should be large enough to fully contain the disc. Only the sector the disc is currently in and those adjacent to it (8 if using squares) need to be checked to determine the next possible disc-disc collision. Similarly, only sectors adjacent to a wall need to check for disc-wall interactions.
+Billiards implements rectangular sectors, each of which should be large enough to fully contain any disc in the simulation. Ideally sectors should be sized so roughly one discs is in each sector. Only the sector the disc is currently in and those adjacent to it (8 for rectangles) need to be checked to determine the next possible disc-disc collision. Similarly, only sectors adjacent to a wall need to be checked for disc-wall interactions. There is some overhead as collision with sector boundaries must be checked and the current sector of each disc tracked. However, for large numbers of discs the reduced number of disc-disc or disc-wall collisions that need to be checked far outweighs this overhead.
 
 % Bibliography
 \bibliographystyle{ieeetr}
