@@ -270,6 +270,14 @@ cdef class PyEvent():
     cdef PySim _sim
     cdef size_t _e_ind
 
+    def __repr__(self):
+        """String representation of PyEvent"""
+
+        rep = f"PyEvent(t={self.t}, ind={self.ind}, second_ind={self.second_ind}, disc_wall_col={self.disc_wall_col}, "
+        rep += f"pos={self.pos}, new_v={self.new_v}, new_w={self.new_w})"
+        
+        return rep
+    
     @staticmethod
     cdef from_PySim(PySim s, size_t ind):
         """
