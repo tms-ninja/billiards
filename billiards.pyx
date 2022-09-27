@@ -1229,7 +1229,16 @@ cdef class PySim():
             - 'R' - radius
             - 'I' - moment of inertia
         
+        Raises
+        ------
+        ValueError
+            Raised if dt is less than or equal to zero
+        
         """
+
+        # Ensure dt is greater than zero
+        if dt<=0.0:
+            raise ValueError(f"dt must be greater than zero. dt was {dt}")
 
         current_state = self.initial_state
 
