@@ -1510,8 +1510,17 @@ class Test_PySim(unittest.TestCase):
         
         with self.assertRaises(ValueError) as _:
             sim.e_t = 1.1
+    
+    def test_replay_by_time_reject_negative_dt(self):
+        """Tests PySim.replay_by_time() rejects dt<=0.0"""
 
+        sim = create_20_disc_sim(1, 1, e_t=-1.0, g=[0.0, 0.0])  # Set e_t for smooth discs
 
+        s = sim['s']
 
-
+        with self.assertRaises(ValueError) as _:
+            next(s.replay_by_time(0.0))  # generators don't execute until next is called
+        
+        with self.assertRaises(ValueError) as _:
+            next(s.replay_by_time(-1.0))
 
