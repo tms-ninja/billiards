@@ -117,17 +117,17 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 		// disc-disc collisions 
 		if (!initial_setup)
 		{
-			if (old_event_i.disc_wall_col==Collision_Type::Disc_Wall)
+			if (old_event_i.col_type==Collision_Type::Disc_Wall)
 				current_it += 2;
-			else if (old_event_i.disc_wall_col == Collision_Type::Disc_Disc)
+			else if (old_event_i.col_type == Collision_Type::Disc_Disc)
 				current_it += 1;
 		}	
 
 		// Save old state as that is the event that has just been processed
 		if (!initial_setup && record_events && 
 			(
-				old_event_i.disc_wall_col == Collision_Type::Disc_Disc ||
-				old_event_i.disc_wall_col == Collision_Type::Disc_Wall)
+				old_event_i.col_type == Collision_Type::Disc_Disc ||
+				old_event_i.col_type == Collision_Type::Disc_Wall)
 			)
 			events.push_back(old_event_i);
 
@@ -155,15 +155,15 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 			{
 				if (boundary_t < Q)  // Collision with boundary first
 				{
-					state_1.second_ind = boundary_ind;
-					state_1.disc_wall_col = Collision_Type::Disc_Boundary;
+					state_1.partner_ind = boundary_ind;
+					state_1.col_type = Collision_Type::Disc_Boundary;
 				}
 				else  // Collision with wall first
 				{
 					Sim::disc_wall_col(initial_state[i], state_1, walls[k]);
 
-					state_1.second_ind = k;
-					state_1.disc_wall_col = Collision_Type::Disc_Wall;
+					state_1.partner_ind = k;
+					state_1.col_type = Collision_Type::Disc_Wall;
 				}
 			}
 			else  // Disc-disc collision
@@ -178,11 +178,11 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 
 				m = state_2.get_disc_partner();
 
-				state_1.second_ind = j;
-				state_2.second_ind = i;
+				state_1.partner_ind = j;
+				state_2.partner_ind = i;
 
-				state_1.disc_wall_col = Collision_Type::Disc_Disc;
-				state_2.disc_wall_col = Collision_Type::Disc_Disc;
+				state_1.col_type = Collision_Type::Disc_Disc;
+				state_2.col_type = Collision_Type::Disc_Disc;
 
 				if (m != size_t_max && m != i)
 				{
@@ -190,8 +190,8 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 
 					Sim::advance(events_vec[m][old_vec[m]], state_m, state_m.t);
 
-					state_m.second_ind = size_t_max;
-					state_m.disc_wall_col = Collision_Type::Disc_Advancement;
+					state_m.partner_ind = size_t_max;
+					state_m.col_type = Collision_Type::Disc_Advancement;
 				}
 			}
 		}
@@ -254,11 +254,11 @@ void Sim::add_disc(const Vec2D& pos, const Vec2D& v, double w, double m, double 
 	Disc& disc{ initial_state.back()};
 
 	elem[0].t = 0.0;
-	elem[0].pos = disc.r;
-	elem[0].new_v = disc.v;
-	elem[0].new_w = disc.w;
+	elem[0].r = disc.r;
+	elem[0].v = disc.v;
+	elem[0].w = disc.w;
 	elem[0].ind = disc_ind;
-	elem[0].second_ind = std::numeric_limits<size_t>::max();
+	elem[0].partner_ind = std::numeric_limits<size_t>::max();
 	disc.sector_ID = sector_ID;
 
 	elem[1] = elem[0];
@@ -566,7 +566,7 @@ std::pair<size_t, double> Sim::get_next_disc_coll(size_t disc_ind) const
 				p_ij = test_disc_disc_col(d1, d2, e1, e2);
 
 				// Ignore partner_ind if it isn't earlier than the next scheduled time
-				// for partner_ind, ignore if its the same partner as e1.second_ind AND
+				// for partner_ind, ignore if its the same partner as e1.partner_ind AND
 				// at the same time as e1.t - avoids processing the same collision twice
 				if (get_time(partner_ind) >= p_ij && p_ij < best_time &&
 					!(e1.get_disc_partner() == partner_ind && p_ij == e1.t))
@@ -612,8 +612,8 @@ double Sim::solve_quadratic(const Vec2D & alpha, const Vec2D & beta, const doubl
 
 double Sim::test_disc_disc_col(const Disc & d1, const Disc & d2, const Event &e1, const Event &e2) const
 {
-	Vec2D d1_pos{ e1.pos }, d2_pos{ e2.pos };
-	Vec2D d1_v{ e1.new_v }, d2_v {e2.new_v};
+	Vec2D d1_pos{ e1.r }, d2_pos{ e2.r };
+	Vec2D d1_v{ e1.v }, d2_v {e2.v};
 	double start_time;  // most recent time of e1.t or e2.t
 	double dt;
 
@@ -623,8 +623,8 @@ double Sim::test_disc_disc_col(const Disc & d1, const Disc & d2, const Event &e1
 
 		dt = e1.t - e2.t;
 
-		d2_pos = advance_position(e2.pos, e2.new_v, dt);
-		d2_v = advance_velocity(e2.pos, e2.new_v, dt);
+		d2_pos = advance_position(e2.r, e2.v, dt);
+		d2_v = advance_velocity(e2.r, e2.v, dt);
 	}
 	else
 	{
@@ -632,8 +632,8 @@ double Sim::test_disc_disc_col(const Disc & d1, const Disc & d2, const Event &e1
 
 		dt = e2.t - e1.t;
 
-		d1_pos = advance_position(e1.pos, e1.new_v, dt);
-		d1_v = advance_velocity(e1.pos, e1.new_v, dt);
+		d1_pos = advance_position(e1.r, e1.v, dt);
+		d1_v = advance_velocity(e1.r, e1.v, dt);
 	}
 
 	Vec2D alpha{ d1_v - d2_v };
@@ -653,7 +653,7 @@ double Sim::test_disc_disc_col(const Disc & d1, const Disc & d2, const Event &e1
 double Sim::test_disc_wall_col(const Disc& d, const Event & e, const Wall & w) const
 {	
 	Vec2D n_vec{ -w.tangent[1], w.tangent[0] };  // create a unit vector normal to the wall
-	double dr_dot_n{ (w.start - e.pos).dot(n_vec) };
+	double dr_dot_n{ (w.start - e.r).dot(n_vec) };
 
 	// Ensure n_vec point from the disc towards the wall
 	if (dr_dot_n < 0.0)
@@ -663,7 +663,7 @@ double Sim::test_disc_wall_col(const Disc& d, const Event & e, const Wall & w) c
 	}
 
 	double g_dot_n{ g.dot(n_vec) };
-	double v_dot_n{ e.new_v.dot(n_vec) };
+	double v_dot_n{ e.v.dot(n_vec) };
 	double dt;  // time to collision
 
 	if (g_dot_n == 0.0)
@@ -697,7 +697,7 @@ double Sim::test_disc_wall_col(const Disc& d, const Event & e, const Wall & w) c
 		}
 	}
 
-	Vec2D disc_impact_pos{ advance_position(e.pos, e.new_v, dt) };
+	Vec2D disc_impact_pos{ advance_position(e.r, e.v, dt) };
 
 	Vec2D diff{ w.end - w.start };
 	double s;  // Position along wall, should be 0.0 <= s <= 1.0
@@ -714,7 +714,7 @@ double Sim::test_disc_boundary_col(const Event& e, const Wall& w) const
 {
 	Vec2D n_vec{ -w.tangent[1], w.tangent[0] };  // create a unit vector normal to the wall
 
-	double dr_dot_n{ (w.start - e.pos).dot(n_vec) };
+	double dr_dot_n{ (w.start - e.r).dot(n_vec) };
 
 	// Ensure n_vec point from the disc towards the wall
 	if (dr_dot_n < 0.0)
@@ -724,7 +724,7 @@ double Sim::test_disc_boundary_col(const Event& e, const Wall& w) const
 	}
 
 	double g_dot_n{ g.dot(n_vec) };
-	double v_dot_n{ e.new_v.dot(n_vec) };
+	double v_dot_n{ e.v.dot(n_vec) };
 	double dt;  // time to collision
 
 	if (g_dot_n == 0.0)
@@ -733,7 +733,7 @@ double Sim::test_disc_boundary_col(const Event& e, const Wall& w) const
 		// Note for constant gravity, it doesn't matter that we don't advance e.new_v
 		// since we're only going to check the component of e.new_v perpendicular
 		// to the wall, which here is zero 
-		if (v_dot_n==0.0 || !(check_leaving_sector(e.new_v, w, e.ind)))
+		if (v_dot_n==0.0 || !(check_leaving_sector(e.v, w, e.ind)))
 			return infinity;
 		else
 		{
@@ -759,7 +759,7 @@ double Sim::test_disc_boundary_col(const Event& e, const Wall& w) const
 			dt = (-v_dot_n + std::sqrt(disc)) / g_dot_n;
 
 			// velocity of disc at moment of collision
-			Vec2D collision_velocity{ advance_velocity(e.pos, e.new_v, dt) };
+			Vec2D collision_velocity{ advance_velocity(e.r, e.v, dt) };
 			
 			// Check if we're leaving the sector the disk is currenty in at the boundary collision
 			// If not, we should check the second boundary collision 
@@ -767,7 +767,7 @@ double Sim::test_disc_boundary_col(const Event& e, const Wall& w) const
 			{
 				dt = (-v_dot_n - std::sqrt(disc)) / g_dot_n;
 
-				collision_velocity = advance_velocity(e.pos, e.new_v, dt);
+				collision_velocity = advance_velocity(e.r, e.v, dt);
 
 				if (!check_leaving_sector(collision_velocity, w, e.ind))
 				{
@@ -788,7 +788,7 @@ void Sim::disc_wall_col(const Disc& d, Event& e, const Wall& w)
 	// of disc centre -> point of collision on wall
 	Vec2D sigma_12{ -w.tangent[1], w.tangent[0] };
 
-	if (sigma_12.dot(e.pos - w.start) > 0.0)
+	if (sigma_12.dot(e.r - w.start) > 0.0)
 		sigma_12 = -sigma_12;
 
 	// Unit vector tangent to disc 1 at point of collision
@@ -797,7 +797,7 @@ void Sim::disc_wall_col(const Disc& d, Event& e, const Wall& w)
 	Vec2D tang_vec{ -sigma_12[1], sigma_12[0] };
 
 	// Relative velocity of surfaces of discs at point of contact
-	Vec2D g_12{ e.new_v + (d.R * e.new_w) * tang_vec };
+	Vec2D g_12{ e.v + (d.R * e.w) * tang_vec };
 
 	Vec2D Q;  // Impulse disc 1 recieves
 
@@ -811,15 +811,15 @@ void Sim::disc_wall_col(const Disc& d, Event& e, const Wall& w)
 	Q -= ((1 + e_t) / m_i_expr) * (g_12 - g_12.dot(sigma_12) * sigma_12);
 
 	// Now update velocities of particles
-	e.new_v += Q / d.m;
+	e.v += Q / d.m;
 
 	// And update the angular velocities
-	e.new_w += (d.R / d.I) * (sigma_12[0] * Q[1] - sigma_12[1] * Q[0]);
+	e.w += (d.R / d.I) * (sigma_12[0] * Q[1] - sigma_12[1] * Q[0]);
 }
 
 void Sim::disc_disc_col(Disc & d1, Disc & d2, Event& e1, Event &e2)
 {
-	Vec2D dr{ e2.pos - e1.pos };
+	Vec2D dr{ e2.r - e1.r };
 	Vec2D sigma_12{ dr / dr.mag() };
 
 	// Unit vector tangent to disc 1 at point of collision
@@ -828,7 +828,7 @@ void Sim::disc_disc_col(Disc & d1, Disc & d2, Event& e1, Event &e2)
 	Vec2D tang_vec{ -sigma_12[1], sigma_12[0] };
 
 	// Relative velocity of surfaces of discs at point of contact
-	Vec2D g_12{ e1.new_v - e2.new_v + (d1.R * e1.new_w + d2.R * e2.new_w) * tang_vec };
+	Vec2D g_12{ e1.v - e2.v + (d1.R * e1.w + d2.R * e2.w) * tang_vec };
 
 	Vec2D Q;  // Impulse disc 1 recieves
 
@@ -842,22 +842,22 @@ void Sim::disc_disc_col(Disc & d1, Disc & d2, Event& e1, Event &e2)
 	Q -= ((1 + e_t) / m_i_expr) * (g_12 - g_12.dot(sigma_12) * sigma_12);
 
 	// Now update velocities of particles
-	e1.new_v += Q / d1.m;
-	e2.new_v -= Q / d2.m;
+	e1.v += Q / d1.m;
+	e2.v -= Q / d2.m;
 
 	// And update the angular velocities
-	e1.new_w += (d1.R / d1.I) * (sigma_12[0] * Q[1] - sigma_12[1] * Q[0]);
-	e2.new_w += (d2.R / d2.I) * (sigma_12[0] * Q[1] - sigma_12[1] * Q[0]);
+	e1.w += (d1.R / d1.I) * (sigma_12[0] * Q[1] - sigma_12[1] * Q[0]);
+	e2.w += (d2.R / d2.I) * (sigma_12[0] * Q[1] - sigma_12[1] * Q[0]);
 }
 
 void Sim::advance(const Event &old_e, Event &new_e, double t)
 {
 	double dt{ t - old_e.t };
 
-	new_e.pos = advance_position(old_e.pos, old_e.new_v, dt);
-	new_e.new_v = advance_velocity(old_e.pos, old_e.new_v, dt);
+	new_e.r = advance_position(old_e.r, old_e.v, dt);
+	new_e.v = advance_velocity(old_e.r, old_e.v, dt);
 
-	new_e.new_w = old_e.new_w;
+	new_e.w = old_e.w;
 }
 
 Vec2D Sim::advance_position(const Vec2D& pos, const Vec2D& v, double dt) const
@@ -902,7 +902,7 @@ void Sim::update_sector_ID(const size_t disc_ind, const Event& old_event)
 	Disc& d{ initial_state[disc_ind] };
 
 	// Only need to update sector IDs if we're dealing with a boundary collision
-	if (old_event.disc_wall_col != Collision_Type::Disc_Boundary)
+	if (old_event.col_type != Collision_Type::Disc_Boundary)
 		return;
 
 	// remove the current entry
@@ -923,7 +923,7 @@ void Sim::update_sector_ID(const size_t disc_ind, const Event& old_event)
 
 	std::tie(x, y) = sector_ID_to_coords(sector_ID);
 
-	size_t boundary_ind{ old_event.second_ind };
+	size_t boundary_ind{ old_event.partner_ind };
 
 	if (boundary_ind == x)  // left boundary
 	{

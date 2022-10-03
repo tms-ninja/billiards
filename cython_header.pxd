@@ -75,13 +75,13 @@ cdef extern from "Event.h":
     cdef cppclass Event:
         Event() except+
         Event(double, size_t, size_t, bool, Vec2D&, Vec2D&) except+
-        Vec2D pos
-        Vec2D new_v
-        double new_w
+        Vec2D r
+        Vec2D v
+        double w
         double t
         size_t ind
-        size_t second_ind
-        Collision_Type disc_wall_col
+        size_t partner_ind
+        Collision_Type col_type
 
 # Declare std::array<Event, 2>
 cdef extern from "<array>" namespace "std" nogil:

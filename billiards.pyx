@@ -360,7 +360,7 @@ cdef class PyEvent():
             
         """
 
-        return self._sim.s.events[self._e_ind].second_ind
+        return self._sim.s.events[self._e_ind].partner_ind
 
     @property
     def disc_wall_col(self):
@@ -379,7 +379,7 @@ cdef class PyEvent():
             
         """
 
-        cdef Collision_Type col_type = self._sim.s.events[self._e_ind].disc_wall_col
+        cdef Collision_Type col_type = self._sim.s.events[self._e_ind].col_type
 
         if col_type==Disc_Disc:
             return PyCol_Type.Disc_Disc
@@ -410,7 +410,7 @@ cdef class PyEvent():
         n = np.empty((2,), dtype=np.float64)
 
         for i in range(2):
-            n[i] = self._sim.s.events[self._e_ind].pos[i]
+            n[i] = self._sim.s.events[self._e_ind].r[i]
 
         return n
 
@@ -433,7 +433,7 @@ cdef class PyEvent():
         n = np.empty((2,), dtype=np.float64)
 
         for i in range(2):
-            n[i] = self._sim.s.events[self._e_ind].new_v[i]
+            n[i] = self._sim.s.events[self._e_ind].v[i]
 
         return n
     
@@ -453,7 +453,7 @@ cdef class PyEvent():
             
         """
 
-        return self._sim.s.events[self._e_ind].new_w
+        return self._sim.s.events[self._e_ind].w
 
 # class PySim
 
@@ -1052,10 +1052,10 @@ cdef class PySim():
             cur_disc = self.s.events_vec[d_ind][self.s.old_vec[d_ind]]
 
             for p_ind in range(0, 2):
-                state_dict['r'][d_ind, p_ind] = cur_disc.pos[p_ind]
-                state_dict['v'][d_ind, p_ind] = cur_disc.new_v[p_ind]
+                state_dict['r'][d_ind, p_ind] = cur_disc.r[p_ind]
+                state_dict['v'][d_ind, p_ind] = cur_disc.v[p_ind]
                 
-            state_dict['w'][d_ind] = cur_disc.new_w
+            state_dict['w'][d_ind] = cur_disc.w
 
         return state_dict
 
@@ -1193,10 +1193,10 @@ cdef class PySim():
 
             # Update the colliding particle accordingly
             for ind in range(2):
-                current_state['v'][cur_disc][ind] = self.s.events[current_state_ind].new_v[ind]
+                current_state['v'][cur_disc][ind] = self.s.events[current_state_ind].v[ind]
 
             # Update angular velocity
-            current_state['w'][cur_disc] = self.s.events[current_state_ind].new_w
+            current_state['w'][cur_disc] = self.s.events[current_state_ind].w
 
             current_t = self.s.events[current_state_ind].t
 
@@ -1283,9 +1283,9 @@ cdef class PySim():
                         r_view[cur_disc_ind, ind] += time_step*v_view[cur_disc_ind, ind] + g_view[ind]*(time_step**2)/2.0
 
                     for ind in range(2):
-                         v_view[cur_disc_ind, ind] = self.s.events[cur_event_ind].new_v[ind]
+                         v_view[cur_disc_ind, ind] = self.s.events[cur_event_ind].v[ind]
 
-                    w_view[cur_disc_ind] = self.s.events[cur_event_ind].new_w
+                    w_view[cur_disc_ind] = self.s.events[cur_event_ind].w
                 else:
                     # advance to end of time interval and break
                     for disc_ind in range(N_discs):

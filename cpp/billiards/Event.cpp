@@ -18,22 +18,22 @@
 
 #include "Event.h"
 
-Event::Event(const double t, const size_t ind, const size_t second_ind, const Collision_Type disc_wall_col, const Vec2D& pos, const Vec2D& new_v, const double new_w)
-	: pos{ pos }, new_v{ new_v }, new_w{ new_w }, t{ t }, ind{ ind }, second_ind{ second_ind }, disc_wall_col{ disc_wall_col }
+Event::Event(const double t, const size_t ind, const size_t partner_ind, const Collision_Type col_type, const Vec2D& r, const Vec2D& v, const double w)
+	: r{ r }, v{ v }, w{ w }, t{ t }, ind{ ind }, partner_ind{ partner_ind }, col_type{ col_type }
 {
 }
 
 size_t Event::get_disc_partner() const
 {
-	if (disc_wall_col == Collision_Type::Disc_Disc)
-		return second_ind;
+	if (col_type == Collision_Type::Disc_Disc)
+		return partner_ind;
 	else
 		return std::numeric_limits<size_t>::max();
 }
 
 std::ostream & operator<<(std::ostream & os, const Event & e)
 {
-	os << e.t << '\t' << e.ind << '\t' << e.second_ind << '\t' << static_cast<int>(e.disc_wall_col) << '\t' << e.pos << '\t' << e.new_v << '\t' << e.new_w;
+	os << e.t << '\t' << e.ind << '\t' << e.partner_ind << '\t' << static_cast<int>(e.col_type) << '\t' << e.r << '\t' << e.v << '\t' << e.w;
 
 	return os;
 }
