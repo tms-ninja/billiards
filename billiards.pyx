@@ -273,8 +273,8 @@ cdef class PyEvent():
     def __repr__(self):
         """String representation of PyEvent"""
 
-        rep = f"PyEvent(t={self.t}, ind={self.ind}, second_ind={self.second_ind}, disc_wall_col={self.disc_wall_col}, "
-        rep += f"pos={self.pos}, new_v={self.new_v}, new_w={self.new_w})"
+        rep = f"PyEvent(t={self.t}, ind={self.ind}, partner_ind={self.partner_ind}, col_type={self.col_type}, "
+        rep += f"r={self.r}, v={self.v}, w={self.w})"
         
         return rep
     
@@ -345,9 +345,9 @@ cdef class PyEvent():
         return self._sim.s.events[self._e_ind].ind
 
     @property
-    def second_ind(self):
+    def partner_ind(self):
         """
-        Index of secondary object (disc or wall)
+        Index of partner object (e.g. disc or wall) involved in the collision
         
         Parameters
         ----------
@@ -363,7 +363,7 @@ cdef class PyEvent():
         return self._sim.s.events[self._e_ind].partner_ind
 
     @property
-    def disc_wall_col(self):
+    def col_type(self):
         """
         Indicates whether the collision involved a wall or another disc
         
@@ -392,7 +392,7 @@ cdef class PyEvent():
 
 
     @property
-    def pos(self):
+    def r(self):
         """
         Position of disc at time of collision
         
@@ -415,9 +415,9 @@ cdef class PyEvent():
         return n
 
     @property
-    def new_v(self):
+    def v(self):
         """
-        New velocity of disc after collision
+        Velocity of disc after collision
         
         Parameters
         ----------
@@ -438,9 +438,9 @@ cdef class PyEvent():
         return n
     
     @property
-    def new_w(self):
+    def w(self):
         """
-        New angular velocity of disc after collision
+        Angular velocity of disc after collision
         
         Parameters
         ----------

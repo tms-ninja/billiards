@@ -95,10 +95,10 @@ class Test_PySim(unittest.TestCase):
 
         self.assertAlmostEqual(ev.t, 2.0)
         self.assertEqual(ev.ind, 0)
-        self.assertEqual(ev.second_ind, 0)
-        self.assertEqual(ev.disc_wall_col, bl.PyCol_Type.Disc_Wall)
-        assert_allclose(ev.pos, expected_pos)
-        assert_allclose(ev.new_v, expected_v)
+        self.assertEqual(ev.partner_ind, 0)
+        self.assertEqual(ev.col_type, bl.PyCol_Type.Disc_Wall)
+        assert_allclose(ev.r, expected_pos)
+        assert_allclose(ev.v, expected_v)
 
     def test_disc_wall_col_horizontal_smooth_disc(self):
         """Tests smooth discs collide with horizontal walls correctly"""
@@ -116,10 +116,10 @@ class Test_PySim(unittest.TestCase):
 
         self.assertAlmostEqual(ev.t, 2.0)
         self.assertEqual(ev.ind, 0)
-        self.assertEqual(ev.second_ind, 1)
-        self.assertEqual(ev.disc_wall_col, bl.PyCol_Type.Disc_Wall)
-        assert_allclose(ev.pos, expected_pos)
-        assert_allclose(ev.new_v, expected_v)
+        self.assertEqual(ev.partner_ind, 1)
+        self.assertEqual(ev.col_type, bl.PyCol_Type.Disc_Wall)
+        assert_allclose(ev.r, expected_pos)
+        assert_allclose(ev.v, expected_v)
 
     def test_disc_wall_col_diagonal_smooth_disc(self):
         """Tests smooth discs collide with diagonal walls correctly"""
@@ -138,10 +138,10 @@ class Test_PySim(unittest.TestCase):
 
         self.assertAlmostEqual(ev.t, 3.0 - 1 / np.sin(np.pi/4))
         self.assertEqual(ev.ind, 0)
-        self.assertEqual(ev.second_ind, 4)
-        self.assertEqual(ev.disc_wall_col, bl.PyCol_Type.Disc_Wall)
-        assert_allclose(ev.pos, expected_pos)
-        assert_allclose(ev.new_v, expected_v, atol=1e-15)
+        self.assertEqual(ev.partner_ind, 4)
+        self.assertEqual(ev.col_type, bl.PyCol_Type.Disc_Wall)
+        assert_allclose(ev.r, expected_pos)
+        assert_allclose(ev.v, expected_v, atol=1e-15)
 
     def test_disc_disc_col_vertical_smooth_disc(self):
         """Tests smooth vertial disc-disc collisions"""
@@ -162,28 +162,28 @@ class Test_PySim(unittest.TestCase):
             {
                 't': 4.0,
                 'ind': 0,
-                'second_ind': 1,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([3.0, 4.0]),
-                'new_v': np.array([0.0, -1.0]),
+                'partner_ind': 1,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([3.0, 4.0]),
+                'v': np.array([0.0, -1.0]),
             },
             {
                 't': 4.0,
                 'ind': 1,
-                'second_ind': 0,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([3.0, 6.0]),
-                'new_v': np.array([0.0, 1.0]),
+                'partner_ind': 0,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([3.0, 6.0]),
+                'v': np.array([0.0, 1.0]),
             }
         ]
 
         for ev, exp in zip(events, expected):
             self.assertAlmostEqual(ev.t, exp['t'])
             self.assertEqual(ev.ind, exp['ind'])
-            self.assertEqual(ev.second_ind, exp['second_ind'])
-            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
-            assert_allclose(ev.pos, exp['pos'])
-            assert_allclose(ev.new_v, exp['new_v'])
+            self.assertEqual(ev.partner_ind, exp['partner_ind'])
+            self.assertEqual(ev.col_type, exp['col_type'])
+            assert_allclose(ev.r, exp['r'])
+            assert_allclose(ev.v, exp['v'])
 
     def test_disc_disc_col_horizontally_smooth_disc(self):
         """Tests smooth horizontal disc-dsic collisions"""
@@ -204,28 +204,28 @@ class Test_PySim(unittest.TestCase):
             {
                 't': 4.0,
                 'ind': 0,
-                'second_ind': 1,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([4.0, 0.0]),
-                'new_v': np.array([-1.0, 0.0]),
+                'partner_ind': 1,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([4.0, 0.0]),
+                'v': np.array([-1.0, 0.0]),
             },
             {
                 't': 4.0,
                 'ind': 1,
-                'second_ind': 0,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([6.0, 0.0]),
-                'new_v': np.array([1.0, 0.0]),
+                'partner_ind': 0,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([6.0, 0.0]),
+                'v': np.array([1.0, 0.0]),
             }
         ]
 
         for ev, exp in zip(events, expected):
             self.assertAlmostEqual(ev.t, exp['t'])
             self.assertEqual(ev.ind, exp['ind'])
-            self.assertEqual(ev.second_ind, exp['second_ind'])
-            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
-            assert_allclose(ev.pos, exp['pos'])
-            assert_allclose(ev.new_v, exp['new_v'])
+            self.assertEqual(ev.partner_ind, exp['partner_ind'])
+            self.assertEqual(ev.col_type, exp['col_type'])
+            assert_allclose(ev.r, exp['r'])
+            assert_allclose(ev.v, exp['v'])
     
     def test_disc_disc_col_off_centre_smooth_disc(self):
         """
@@ -249,28 +249,28 @@ class Test_PySim(unittest.TestCase):
             {
                 't': 5 - np.sqrt(2)/2,
                 'ind': 0,
-                'second_ind': 1,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([5 - np.sqrt(2)/2, 0.0]),
-                'new_v': np.array([0.0, -1.0]),
+                'partner_ind': 1,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([5 - np.sqrt(2)/2, 0.0]),
+                'v': np.array([0.0, -1.0]),
             },
             {
                 't': 5 - np.sqrt(2)/2,
                 'ind': 1,
-                'second_ind': 0,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([5 + np.sqrt(2)/2, np.sqrt(2)]),
-                'new_v': np.array([0.0, 1.0]),
+                'partner_ind': 0,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([5 + np.sqrt(2)/2, np.sqrt(2)]),
+                'v': np.array([0.0, 1.0]),
             }
         ]
 
         for ev, exp in zip(events, expected):
             self.assertAlmostEqual(ev.t, exp['t'])
             self.assertEqual(ev.ind, exp['ind'])
-            self.assertEqual(ev.second_ind, exp['second_ind'])
-            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
-            assert_allclose(ev.pos, exp['pos'])
-            assert_allclose(ev.new_v, exp['new_v'], atol=1e-14)
+            self.assertEqual(ev.partner_ind, exp['partner_ind'])
+            self.assertEqual(ev.col_type, exp['col_type'])
+            assert_allclose(ev.r, exp['r'])
+            assert_allclose(ev.v, exp['v'], atol=1e-14)
 
     def test_disc_disc_col_speed_smooth_disc(self):
         """
@@ -294,28 +294,28 @@ class Test_PySim(unittest.TestCase):
             {
                 't': 1.6,
                 'ind': 0,
-                'second_ind': 1,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([3.2, 0.0]),
-                'new_v': np.array([-3.0, 0.0]),
+                'partner_ind': 1,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([3.2, 0.0]),
+                'v': np.array([-3.0, 0.0]),
             },
             {
                 't': 1.6,
                 'ind': 1,
-                'second_ind': 0,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([5.2, 0.0]),
-                'new_v': np.array([2.0, 0.0]),
+                'partner_ind': 0,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([5.2, 0.0]),
+                'v': np.array([2.0, 0.0]),
             }
         ]
 
         for ev, exp in zip(events, expected):
             self.assertAlmostEqual(ev.t, exp['t'])
             self.assertEqual(ev.ind, exp['ind'])
-            self.assertEqual(ev.second_ind, exp['second_ind'])
-            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
-            assert_allclose(ev.pos, exp['pos'])
-            assert_allclose(ev.new_v, exp['new_v'])
+            self.assertEqual(ev.partner_ind, exp['partner_ind'])
+            self.assertEqual(ev.col_type, exp['col_type'])
+            assert_allclose(ev.r, exp['r'])
+            assert_allclose(ev.v, exp['v'])
     
     def test_disc_disc_col_mass_smooth_disc(self):
         """
@@ -339,28 +339,28 @@ class Test_PySim(unittest.TestCase):
             {
                 't': 4.0,
                 'ind': 0,
-                'second_ind': 1,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([4.0, 0.0]),
-                'new_v': np.array([-1.4, 0.0]),
+                'partner_ind': 1,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([4.0, 0.0]),
+                'v': np.array([-1.4, 0.0]),
             },
             {
                 't': 4.0,
                 'ind': 1,
-                'second_ind': 0,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([6.0, 0.0]),
-                'new_v': np.array([0.6, 0.0]),
+                'partner_ind': 0,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([6.0, 0.0]),
+                'v': np.array([0.6, 0.0]),
             }
         ]
 
         for ev, exp in zip(events, expected):
             self.assertAlmostEqual(ev.t, exp['t'])
             self.assertEqual(ev.ind, exp['ind'])
-            self.assertEqual(ev.second_ind, exp['second_ind'])
-            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
-            assert_allclose(ev.pos, exp['pos'])
-            assert_allclose(ev.new_v, exp['new_v'])
+            self.assertEqual(ev.partner_ind, exp['partner_ind'])
+            self.assertEqual(ev.col_type, exp['col_type'])
+            assert_allclose(ev.r, exp['r'])
+            assert_allclose(ev.v, exp['v'])
     
     def test_disc_disc_col_radii_smooth_disc(self):
         """
@@ -384,28 +384,28 @@ class Test_PySim(unittest.TestCase):
             {
                 't': 2.5,
                 'ind': 0,
-                'second_ind': 1,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([2.5, 0.0]),
-                'new_v': np.array([-1.0, 0.0]),
+                'partner_ind': 1,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([2.5, 0.0]),
+                'v': np.array([-1.0, 0.0]),
             },
             {
                 't': 2.5,
                 'ind': 1,
-                'second_ind': 0,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([7.5, 0.0]),
-                'new_v': np.array([1.0, 0.0]),
+                'partner_ind': 0,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([7.5, 0.0]),
+                'v': np.array([1.0, 0.0]),
             }
         ]
 
         for ev, exp in zip(events, expected):
             self.assertAlmostEqual(ev.t, exp['t'])
             self.assertEqual(ev.ind, exp['ind'])
-            self.assertEqual(ev.second_ind, exp['second_ind'])
-            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
-            assert_allclose(ev.pos, exp['pos'])
-            assert_allclose(ev.new_v, exp['new_v'])
+            self.assertEqual(ev.partner_ind, exp['partner_ind'])
+            self.assertEqual(ev.col_type, exp['col_type'])
+            assert_allclose(ev.r, exp['r'])
+            assert_allclose(ev.v, exp['v'])
     
     def test_KE_conservation_smooth_disc(self):
         """
@@ -451,12 +451,12 @@ class Test_PySim(unittest.TestCase):
 
         self.assertAlmostEqual(ev.t, 2.0)
         self.assertEqual(ev.ind, 0)
-        self.assertEqual(ev.second_ind, 0)
-        self.assertEqual(ev.disc_wall_col, bl.PyCol_Type.Disc_Wall)
+        self.assertEqual(ev.partner_ind, 0)
+        self.assertEqual(ev.col_type, bl.PyCol_Type.Disc_Wall)
 
-        assert_allclose(ev.pos, expected_pos)
-        assert_allclose(ev.new_v, expected_v)
-        assert_allclose(ev.new_w, expected_w)
+        assert_allclose(ev.r, expected_pos)
+        assert_allclose(ev.v, expected_v)
+        assert_allclose(ev.w, expected_w)
 
     def test_disc_wall_col_horizontal_rough_disc(self):
         """Tests rough discs collide with horizontal walls correctly"""
@@ -477,11 +477,11 @@ class Test_PySim(unittest.TestCase):
 
         self.assertAlmostEqual(ev.t, 2.0)
         self.assertEqual(ev.ind, 0)
-        self.assertEqual(ev.second_ind, 1)
-        self.assertEqual(ev.disc_wall_col, bl.PyCol_Type.Disc_Wall)
-        assert_allclose(ev.pos, expected_pos)
-        assert_allclose(ev.new_v, expected_v)
-        assert_allclose(ev.new_w, expected_w)
+        self.assertEqual(ev.partner_ind, 1)
+        self.assertEqual(ev.col_type, bl.PyCol_Type.Disc_Wall)
+        assert_allclose(ev.r, expected_pos)
+        assert_allclose(ev.v, expected_v)
+        assert_allclose(ev.w, expected_w)
 
     def test_disc_wall_col_diagonal_rough_disc(self):
         """Tests rough discs collide with diagonal walls correctly"""
@@ -503,11 +503,11 @@ class Test_PySim(unittest.TestCase):
 
         self.assertAlmostEqual(ev.t, 3.0 - 1 / np.sin(np.pi/4))
         self.assertEqual(ev.ind, 0)
-        self.assertEqual(ev.second_ind, 4)
-        self.assertEqual(ev.disc_wall_col, bl.PyCol_Type.Disc_Wall)
-        assert_allclose(ev.pos, expected_pos)
-        assert_allclose(ev.new_v, expected_v, atol=1e-15)
-        assert_allclose(ev.new_w, expected_w, atol=1e-15)
+        self.assertEqual(ev.partner_ind, 4)
+        self.assertEqual(ev.col_type, bl.PyCol_Type.Disc_Wall)
+        assert_allclose(ev.r, expected_pos)
+        assert_allclose(ev.v, expected_v, atol=1e-15)
+        assert_allclose(ev.w, expected_w, atol=1e-15)
 
     def test_disc_disc_col_vertical_rough_disc(self):
         """Tests rough vertial disc-disc collisions"""
@@ -530,31 +530,31 @@ class Test_PySim(unittest.TestCase):
             {
                 't': 4.0,
                 'ind': 0,
-                'second_ind': 1,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([3.0, 4.0]),
-                'new_v': np.array([2 / 3, -1.0]),
-                'new_w': - 1 / 3
+                'partner_ind': 1,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([3.0, 4.0]),
+                'v': np.array([2 / 3, -1.0]),
+                'w': - 1 / 3
             },
             {
                 't': 4.0,
                 'ind': 1,
-                'second_ind': 0,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([3.0, 6.0]),
-                'new_v': np.array([-2 / 3, 1.0]),
-                'new_w': - 1 / 3
+                'partner_ind': 0,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([3.0, 6.0]),
+                'v': np.array([-2 / 3, 1.0]),
+                'w': - 1 / 3
             }
         ]
 
         for ev, exp in zip(events, expected):
             self.assertAlmostEqual(ev.t, exp['t'])
             self.assertEqual(ev.ind, exp['ind'])
-            self.assertEqual(ev.second_ind, exp['second_ind'])
-            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
-            assert_allclose(ev.pos, exp['pos'])
-            assert_allclose(ev.new_v, exp['new_v'])
-            assert_allclose(ev.new_w, exp['new_w'])
+            self.assertEqual(ev.partner_ind, exp['partner_ind'])
+            self.assertEqual(ev.col_type, exp['col_type'])
+            assert_allclose(ev.r, exp['r'])
+            assert_allclose(ev.v, exp['v'])
+            assert_allclose(ev.w, exp['w'])
 
     def test_disc_disc_col_horizontally_rough_disc(self):
         """Tests rough horizontal disc-disc collisions"""
@@ -577,31 +577,31 @@ class Test_PySim(unittest.TestCase):
             {
                 't': 4.0,
                 'ind': 0,
-                'second_ind': 1,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([4.0, 0.0]),
-                'new_v': np.array([-1.0, -2 / 3]),
-                'new_w': - 1 / 3
+                'partner_ind': 1,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([4.0, 0.0]),
+                'v': np.array([-1.0, -2 / 3]),
+                'w': - 1 / 3
             },
             {
                 't': 4.0,
                 'ind': 1,
-                'second_ind': 0,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([6.0, 0.0]),
-                'new_v': np.array([1.0, 2 / 3]),
-                'new_w': - 1 / 3
+                'partner_ind': 0,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([6.0, 0.0]),
+                'v': np.array([1.0, 2 / 3]),
+                'w': - 1 / 3
             }
         ]
 
         for ev, exp in zip(events, expected):
             self.assertAlmostEqual(ev.t, exp['t'])
             self.assertEqual(ev.ind, exp['ind'])
-            self.assertEqual(ev.second_ind, exp['second_ind'])
-            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
-            assert_allclose(ev.pos, exp['pos'])
-            assert_allclose(ev.new_v, exp['new_v'])
-            assert_allclose(ev.new_w, exp['new_w'])
+            self.assertEqual(ev.partner_ind, exp['partner_ind'])
+            self.assertEqual(ev.col_type, exp['col_type'])
+            assert_allclose(ev.r, exp['r'])
+            assert_allclose(ev.v, exp['v'])
+            assert_allclose(ev.w, exp['w'])
     
     def test_disc_disc_col_off_centre_rough_disc(self):
         """
@@ -627,31 +627,31 @@ class Test_PySim(unittest.TestCase):
             {
                 't': 5 - np.sqrt(2)/2,
                 'ind': 0,
-                'second_ind': 1,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([5 - np.sqrt(2)/2, 0.0]),
-                'new_v': np.array([ (-1+np.sqrt(2)) / 3, -(2+np.sqrt(2)) / 3]),
-                'new_w': (-1 + 2*np.sqrt(2)) / 3
+                'partner_ind': 1,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([5 - np.sqrt(2)/2, 0.0]),
+                'v': np.array([ (-1+np.sqrt(2)) / 3, -(2+np.sqrt(2)) / 3]),
+                'w': (-1 + 2*np.sqrt(2)) / 3
             },
             {
                 't': 5 - np.sqrt(2)/2,
                 'ind': 1,
-                'second_ind': 0,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([5 + np.sqrt(2)/2, np.sqrt(2)]),
-                'new_v': np.array([(1 - np.sqrt(2)) / 3, (2+np.sqrt(2)) / 3 ]),
-                'new_w': (-1 + 2*np.sqrt(2)) / 3
+                'partner_ind': 0,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([5 + np.sqrt(2)/2, np.sqrt(2)]),
+                'v': np.array([(1 - np.sqrt(2)) / 3, (2+np.sqrt(2)) / 3 ]),
+                'w': (-1 + 2*np.sqrt(2)) / 3
             }
         ]
 
         for ev, exp in zip(events, expected):
             self.assertAlmostEqual(ev.t, exp['t'])
             self.assertEqual(ev.ind, exp['ind'])
-            self.assertEqual(ev.second_ind, exp['second_ind'])
-            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
-            assert_allclose(ev.pos, exp['pos'])
-            assert_allclose(ev.new_v, exp['new_v'], atol=1e-14)
-            assert_allclose(ev.new_w, exp['new_w'], atol=1e-15)
+            self.assertEqual(ev.partner_ind, exp['partner_ind'])
+            self.assertEqual(ev.col_type, exp['col_type'])
+            assert_allclose(ev.r, exp['r'])
+            assert_allclose(ev.v, exp['v'], atol=1e-14)
+            assert_allclose(ev.w, exp['w'], atol=1e-15)
 
     def test_disc_disc_col_speed_rough_disc(self):
         """
@@ -677,31 +677,31 @@ class Test_PySim(unittest.TestCase):
             {
                 't': 1.6,
                 'ind': 0,
-                'second_ind': 1,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([3.2, 0.0]),
-                'new_v': np.array([-3.0, -2/3]),
-                'new_w': -1/3
+                'partner_ind': 1,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([3.2, 0.0]),
+                'v': np.array([-3.0, -2/3]),
+                'w': -1/3
             },
             {
                 't': 1.6,
                 'ind': 1,
-                'second_ind': 0,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([5.2, 0.0]),
-                'new_v': np.array([2.0, 2/3]),
-                'new_w': -1/3
+                'partner_ind': 0,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([5.2, 0.0]),
+                'v': np.array([2.0, 2/3]),
+                'w': -1/3
             }
         ]
 
         for ev, exp in zip(events, expected):
             self.assertAlmostEqual(ev.t, exp['t'])
             self.assertEqual(ev.ind, exp['ind'])
-            self.assertEqual(ev.second_ind, exp['second_ind'])
-            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
-            assert_allclose(ev.pos, exp['pos'])
-            assert_allclose(ev.new_v, exp['new_v'])
-            assert_allclose(ev.new_w, exp['new_w'])
+            self.assertEqual(ev.partner_ind, exp['partner_ind'])
+            self.assertEqual(ev.col_type, exp['col_type'])
+            assert_allclose(ev.r, exp['r'])
+            assert_allclose(ev.v, exp['v'])
+            assert_allclose(ev.w, exp['w'])
 
     def test_disc_disc_col_mass_rough_disc(self):
         """
@@ -727,31 +727,31 @@ class Test_PySim(unittest.TestCase):
             {
                 't': 4.0,
                 'ind': 0,
-                'second_ind': 1,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([4.0, 0.0]),
-                'new_v': np.array([-1.4, -12 / 17]),
-                'new_w': -7 / 17
+                'partner_ind': 1,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([4.0, 0.0]),
+                'v': np.array([-1.4, -12 / 17]),
+                'w': -7 / 17
             },
             {
                 't': 4.0,
                 'ind': 1,
-                'second_ind': 0,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([6.0, 0.0]),
-                'new_v': np.array([0.6, 8 / 17]),
-                'new_w': -7 / 17
+                'partner_ind': 0,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([6.0, 0.0]),
+                'v': np.array([0.6, 8 / 17]),
+                'w': -7 / 17
             }
         ]
 
         for ev, exp in zip(events, expected):
             self.assertAlmostEqual(ev.t, exp['t'])
             self.assertEqual(ev.ind, exp['ind'])
-            self.assertEqual(ev.second_ind, exp['second_ind'])
-            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
-            assert_allclose(ev.pos, exp['pos'])
-            assert_allclose(ev.new_v, exp['new_v'])
-            assert_allclose(ev.new_w, exp['new_w'])
+            self.assertEqual(ev.partner_ind, exp['partner_ind'])
+            self.assertEqual(ev.col_type, exp['col_type'])
+            assert_allclose(ev.r, exp['r'])
+            assert_allclose(ev.v, exp['v'])
+            assert_allclose(ev.w, exp['w'])
     
     def test_disc_disc_col_radii_rough_disc(self):
         """
@@ -777,31 +777,31 @@ class Test_PySim(unittest.TestCase):
             {
                 't': 2.5,
                 'ind': 0,
-                'second_ind': 1,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([2.5, 0.0]),
-                'new_v': np.array([-1.0, -2 / 3]),
-                'new_w': -1 / 3
+                'partner_ind': 1,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([2.5, 0.0]),
+                'v': np.array([-1.0, -2 / 3]),
+                'w': -1 / 3
             },
             {
                 't': 2.5,
                 'ind': 1,
-                'second_ind': 0,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([7.5, 0.0]),
-                'new_v': np.array([1.0, 2 / 3]),
-                'new_w': -1.0
+                'partner_ind': 0,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([7.5, 0.0]),
+                'v': np.array([1.0, 2 / 3]),
+                'w': -1.0
             }
         ]
 
         for ev, exp in zip(events, expected):
             self.assertAlmostEqual(ev.t, exp['t'])
             self.assertEqual(ev.ind, exp['ind'])
-            self.assertEqual(ev.second_ind, exp['second_ind'])
-            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
-            assert_allclose(ev.pos, exp['pos'])
-            assert_allclose(ev.new_v, exp['new_v'])
-            assert_allclose(ev.new_w, exp['new_w'])
+            self.assertEqual(ev.partner_ind, exp['partner_ind'])
+            self.assertEqual(ev.col_type, exp['col_type'])
+            assert_allclose(ev.r, exp['r'])
+            assert_allclose(ev.v, exp['v'])
+            assert_allclose(ev.w, exp['w'])
     
     def test_disc_disc_col_moment_of_inertia_rough_disc(self):
         """
@@ -827,31 +827,31 @@ class Test_PySim(unittest.TestCase):
             {
                 't': 4.0,
                 'ind': 0,
-                'second_ind': 1,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([4.0, 0.0]),
-                'new_v': np.array([-1.0, -4 / 17]),
-                'new_w': -23 / 17
+                'partner_ind': 1,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([4.0, 0.0]),
+                'v': np.array([-1.0, -4 / 17]),
+                'w': -23 / 17
             },
             {
                 't': 4.0,
                 'ind': 1,
-                'second_ind': 0,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([6.0, 0.0]),
-                'new_v': np.array([1.0, 4 / 17]),
-                'new_w': -3 / 17
+                'partner_ind': 0,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([6.0, 0.0]),
+                'v': np.array([1.0, 4 / 17]),
+                'w': -3 / 17
             }
         ]
 
         for ev, exp in zip(events, expected):
             self.assertAlmostEqual(ev.t, exp['t'])
             self.assertEqual(ev.ind, exp['ind'])
-            self.assertEqual(ev.second_ind, exp['second_ind'])
-            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
-            assert_allclose(ev.pos, exp['pos'])
-            assert_allclose(ev.new_v, exp['new_v'])
-            assert_allclose(ev.new_w, exp['new_w'])
+            self.assertEqual(ev.partner_ind, exp['partner_ind'])
+            self.assertEqual(ev.col_type, exp['col_type'])
+            assert_allclose(ev.r, exp['r'])
+            assert_allclose(ev.v, exp['v'])
+            assert_allclose(ev.w, exp['w'])
     
     def test_disc_disc_col_angular_velocity_rough_disc(self):
         """
@@ -877,31 +877,31 @@ class Test_PySim(unittest.TestCase):
             {
                 't': 4.0,
                 'ind': 0,
-                'second_ind': 1,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([4.0, 0.0]),
-                'new_v': np.array([-1.0, -5/3]),
-                'new_w': -4/3
+                'partner_ind': 1,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([4.0, 0.0]),
+                'v': np.array([-1.0, -5/3]),
+                'w': -4/3
             },
             {
                 't': 4.0,
                 'ind': 1,
-                'second_ind': 0,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([6.0, 0.0]),
-                'new_v': np.array([1.0, 5/3]),
-                'new_w': -1/3
+                'partner_ind': 0,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([6.0, 0.0]),
+                'v': np.array([1.0, 5/3]),
+                'w': -1/3
             }
         ]
 
         for ev, exp in zip(events, expected):
             self.assertAlmostEqual(ev.t, exp['t'])
             self.assertEqual(ev.ind, exp['ind'])
-            self.assertEqual(ev.second_ind, exp['second_ind'])
-            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
-            assert_allclose(ev.pos, exp['pos'])
-            assert_allclose(ev.new_v, exp['new_v'])
-            assert_allclose(ev.new_w, exp['new_w'])
+            self.assertEqual(ev.partner_ind, exp['partner_ind'])
+            self.assertEqual(ev.col_type, exp['col_type'])
+            assert_allclose(ev.r, exp['r'])
+            assert_allclose(ev.v, exp['v'])
+            assert_allclose(ev.w, exp['w'])
     
     def test_KE_conservation_rough_disc(self):
         """
@@ -948,10 +948,10 @@ class Test_PySim(unittest.TestCase):
 
         self.assertAlmostEqual(ev.t, 2.0)
         self.assertEqual(ev.ind, 0)
-        self.assertEqual(ev.second_ind, 0)
-        self.assertEqual(ev.disc_wall_col, bl.PyCol_Type.Disc_Wall)
-        assert_allclose(ev.pos, expected_pos)
-        assert_allclose(ev.new_v, expected_v)
+        self.assertEqual(ev.partner_ind, 0)
+        self.assertEqual(ev.col_type, bl.PyCol_Type.Disc_Wall)
+        assert_allclose(ev.r, expected_pos)
+        assert_allclose(ev.v, expected_v)
 
     def test_disc_wall_col_horizontal_gravity(self):
         """Tests smooth discs collide with horizontal walls correctly under gravity"""
@@ -971,10 +971,10 @@ class Test_PySim(unittest.TestCase):
 
         self.assertAlmostEqual(ev.t, 1+np.sqrt(3.0))
         self.assertEqual(ev.ind, 0)
-        self.assertEqual(ev.second_ind, 3)
-        self.assertEqual(ev.disc_wall_col, bl.PyCol_Type.Disc_Wall)
-        assert_allclose(ev.pos, expected_pos)
-        assert_allclose(ev.new_v, expected_v)
+        self.assertEqual(ev.partner_ind, 3)
+        self.assertEqual(ev.col_type, bl.PyCol_Type.Disc_Wall)
+        assert_allclose(ev.r, expected_pos)
+        assert_allclose(ev.v, expected_v)
         
     def test_disc_disc_col_gravity(self):
         """Tests smooth disc-disc collisions under gravity"""
@@ -997,28 +997,28 @@ class Test_PySim(unittest.TestCase):
             {
                 't': 2.0,
                 'ind': 0,
-                'second_ind': 1,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([0.0, -2.0]),
-                'new_v': np.array([-1.0, -2.0]),
+                'partner_ind': 1,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([0.0, -2.0]),
+                'v': np.array([-1.0, -2.0]),
             },
             {
                 't': 2.0,
                 'ind': 1,
-                'second_ind': 0,
-                'disc_wall_col': bl.PyCol_Type.Disc_Disc,
-                'pos': np.array([2.0, -2.0]),
-                'new_v': np.array([0.0, -1.0]),
+                'partner_ind': 0,
+                'col_type': bl.PyCol_Type.Disc_Disc,
+                'r': np.array([2.0, -2.0]),
+                'v': np.array([0.0, -1.0]),
             }
         ]
 
         for ev, exp in zip(events, expected):
             self.assertAlmostEqual(ev.t, exp['t'])
             self.assertEqual(ev.ind, exp['ind'])
-            self.assertEqual(ev.second_ind, exp['second_ind'])
-            self.assertEqual(ev.disc_wall_col, exp['disc_wall_col'])
-            assert_allclose(ev.pos, exp['pos'])
-            assert_allclose(ev.new_v, exp['new_v'])
+            self.assertEqual(ev.partner_ind, exp['partner_ind'])
+            self.assertEqual(ev.col_type, exp['col_type'])
+            assert_allclose(ev.r, exp['r'])
+            assert_allclose(ev.v, exp['v'])
 
     def test_energy_conservation_gravity(self):
         """
