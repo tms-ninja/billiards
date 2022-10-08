@@ -39,7 +39,7 @@ s.advance(10, 10000.0, True)
 
 # Print the events that occurred
 for e in s.events:
-    print(f"{e.t}\t{e.ind}\t{e.second_ind}\t{e.disc_wall_col}\t{e.pos}\t{e.new_v}")
+    print(f"{e.t}\t{e.ind}\t{e.partner_ind}\t{e.col_type}\t{e.r}\t{e.v}")
 
 print("End of program")
 

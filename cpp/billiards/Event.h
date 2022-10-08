@@ -30,17 +30,17 @@ enum class Collision_Type
 class Event
 {
 public:
-	Vec2D pos;
-	Vec2D new_v;
-	double new_w;  // New angular velocity
+	Vec2D r;
+	Vec2D v;
+	double w;  // New angular velocity
 	double t;
 	size_t ind;			 // Index of the disc involved in the event
-	size_t second_ind;   // index of the other thing involved in the event
-	Collision_Type disc_wall_col;  // true if event is a disc-wall collision
+	size_t partner_ind;   // index of the other thing involved in the event
+	Collision_Type col_type;
 
 	Event() = default;
 
-	Event(const double t, const size_t ind, const size_t second_ind, const Collision_Type disc_wall_col, const Vec2D &pos, const Vec2D &new_v, const double new_w);
+	Event(const double t, const size_t ind, const size_t partner_ind, const Collision_Type col_type, const Vec2D &r, const Vec2D &v, const double w);
 
 	// Returns the index of the disc this disc is collising with. If it is a disc_wall collision
 	// returns size_t_max
