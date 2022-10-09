@@ -1144,6 +1144,17 @@ cdef class PySim():
         cdef Vec2D g_vec = Vec2D(_g[0], _g[1])
 
         self.s.set_g(g_vec)
+    
+    @property
+    def current_time(self):
+        """
+        Gets the time the simulation has been advanced to. All collisions up to
+        but not necessarily including current_time have been processed, though
+        discs may not have been advanced and therefore have the properties 
+        (i.e. position & velocity) they should have at current_time.
+        """
+
+        return self.s.current_time
 
     # Generators for replaying the simulation
     def replay_by_event(self):
