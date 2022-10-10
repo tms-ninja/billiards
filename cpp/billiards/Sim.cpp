@@ -78,7 +78,6 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 	// Implements the algorithm described in (Lubachevsky 1991)
 
 	size_t current_it{ 0 };
-	double current_t{ this->current_time };
 
 	// true means we are still finding disc with their new event time of 0.0
 	// Collisions for discs may not be performed in the order they take place
@@ -91,13 +90,13 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 
 	// Run to max_iterations*2 as disc-disc collisions count involve two iterations
 	// Similarly, need to make disc-wall collisions count as 2
-	while (current_it < 2*max_iterations && current_t < max_t)
+	while (current_it < 2*max_iterations && current_time < max_t)
 	{
 		// Determine i
 		i = get_min_time_ind();
-		current_t = get_time(i);
+		current_time = get_time(i);
 
-		if (current_t > 0.0)
+		if (current_time > 0.0)
 			initial_setup = false;
 
 		// Swap new and old for disc i
