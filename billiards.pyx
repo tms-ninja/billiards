@@ -1233,7 +1233,7 @@ cdef class PySim():
         is not an integer multiple of dt, the events after the previous integer
         multiple of dt are not returned. I.e. If the last event in the 
         simulation occurs at time T, replay_by_time() does not consider events
-        after int(T/dt).
+        after int(T/dt)*dt.
 
         Parameters
         dt : float
@@ -1243,8 +1243,8 @@ cdef class PySim():
         ------
         dict
             A dict containing the position, velocity, masses and radii of the 
-            discs as numpy arrays. Keys
-            correspond to:
+            discs as numpy arrays. Keys correspond to:
+            - 't' - time of the current snapshot
             - 'r' - position
             - 'v' - velocity
             - 'w' - angular velocity
@@ -1264,6 +1264,7 @@ cdef class PySim():
             raise ValueError(f"dt must be greater than zero. dt was {dt}")
 
         current_state = self.initial_state
+        current_state['t'] = 0.0
 
         yield current_state
 
@@ -1328,6 +1329,8 @@ cdef class PySim():
             # No more events to process
             if cur_event_ind == N_events:
                 break
+
+            current_state['t'] = cur_period*dt
 
             # Yield after checking there are no more events
             yield current_state
