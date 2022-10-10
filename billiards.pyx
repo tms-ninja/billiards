@@ -1015,8 +1015,16 @@ cdef class PySim():
     def current_state(self):
         """
         Gets desired current properties of each disc in the current state and 
-        returns them as a dictionary of numpy arrays.
-        
+        returns them as a dictionary of numpy arrays. Note that as the 
+        simulation advances from one event to another, the current (that is 
+        most recent) event of a particular disc does not necessarily occur at 
+        the same time as the current event of another disc. To get the 
+        positions of all discs at the current time (i.e. given by
+        PySim.current_time), this can be manually computed using:
+
+        state_dict['r'] + state_dict['v']*(PySim.current_time-state_dict['t'])
+        + 0.5*PySim.g*(PySim.current_time-state_dict['t'])**2
+
         Parameters
         ----------
         None.
@@ -1026,6 +1034,7 @@ cdef class PySim():
         dict
             A dictionary with character keys and values of numpy arrays. Keys
             correspond to:
+            - 't' - time of the last event
             - 'r' - position
             - 'v' - velocity
             - 'w' - angular velocity
@@ -1036,6 +1045,7 @@ cdef class PySim():
 
         state_dict = {}
 
+        state_dict['t'] = np.empty((self.s.initial_state.size(), ), dtype=np.float64)
         state_dict['r'] = np.empty((self.s.initial_state.size(), 2), dtype=np.float64)
         state_dict['v'] = np.empty((self.s.initial_state.size(), 2), dtype=np.float64)
         state_dict['w'] = np.empty((self.s.initial_state.size(), ), dtype=np.float64)
@@ -1050,6 +1060,8 @@ cdef class PySim():
 
         for d_ind in range(0, self.s.initial_state.size()):
             cur_disc = self.s.events_vec[d_ind][self.s.old_vec[d_ind]]
+
+            state_dict['t'][d_ind] = cur_disc.t
 
             for p_ind in range(0, 2):
                 state_dict['r'][d_ind, p_ind] = cur_disc.r[p_ind]
