@@ -272,6 +272,15 @@ void Sim::add_disc(const Vec2D& pos, const Vec2D& v, double w, double m, double 
 	add_time_to_heap(disc_ind);
 }
 
+void Sim::add_wall(const Vec2D& start, const Vec2D& end)
+{
+	// Check the simulation has not started
+	if (sim_has_started)
+		throw std::runtime_error("Cannot add wall to simulation once advance() has been called.");	
+
+	walls.emplace_back(start, end);
+}
+
 double Sim::get_e_n() const
 {
 	return e_n;
