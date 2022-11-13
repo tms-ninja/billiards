@@ -75,6 +75,8 @@ Sim::Sim(Vec2D bottom_left, Vec2D top_right, size_t N, size_t M)
 
 void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 {
+	sim_has_started = true;
+
 	// Implements the algorithm described in (Lubachevsky 1991)
 
 	size_t current_it{ 0 };
@@ -199,6 +201,10 @@ void Sim::advance(size_t max_iterations, double max_t, bool record_events)
 
 void Sim::add_disc(const Vec2D& pos, const Vec2D& v, double w, double m, double R, double I)
 {
+	// Check the simulation has not started
+	if (sim_has_started)
+		throw std::runtime_error("Cannot add disc to simulation once advance() has been called.");	
+
 	// Check disc is within simulation bounds
 	double left, right, top, bottom;
 
@@ -264,6 +270,15 @@ void Sim::add_disc(const Vec2D& pos, const Vec2D& v, double w, double m, double 
 
 	// Add to the heap
 	add_time_to_heap(disc_ind);
+}
+
+void Sim::add_wall(const Vec2D& start, const Vec2D& end)
+{
+	// Check the simulation has not started
+	if (sim_has_started)
+		throw std::runtime_error("Cannot add wall to simulation once advance() has been called.");	
+
+	walls.emplace_back(start, end);
 }
 
 double Sim::get_e_n() const

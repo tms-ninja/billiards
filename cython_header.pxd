@@ -112,6 +112,7 @@ cdef extern from "Sim.h":
 
         void advance(size_t, double, bool) except+
         void add_disc(Vec2D pos, Vec2D v, double w, double m, double R, double I) except+
+        void add_wall(Vec2D start, Vec2D end) except+
 
         # Getter setter methods for coefficients of normal/tangential restitution,
         # acceleration due to gravity vector

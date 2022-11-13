@@ -58,6 +58,9 @@ public:
 
 	double current_time{ 0.0 };
 
+	// gives whether advance() has been called or not
+	bool sim_has_started{ false };
+
 	// N and M are the number of sectors the simulation should be split up into in the 
 	// horizontal and vertical directions respectively
 	Sim(Vec2D bottom_left, Vec2D top_right, size_t N=1, size_t M=1);
@@ -67,6 +70,9 @@ public:
 
 	// Adds a disc to the simulation. Should not be called after the simulation has started
 	void add_disc(const Vec2D& pos, const Vec2D& v, double w, double m, double R, double I);
+
+	// Adds a wall to the simulation. Should not be called after the simulation has started
+	void add_wall(const Vec2D& start, const Vec2D& end);
 
 	// Getter/setter methods for coefficients of restitution
 

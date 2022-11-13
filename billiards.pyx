@@ -586,9 +586,8 @@ cdef class PySim():
 
         cdef Vec2D v_start = Vec2D(start[0], start[1])
         cdef Vec2D v_end = Vec2D(end[0], end[1])
-        cdef Wall w = Wall(v_start, v_end)
 
-        self.s.walls.push_back(w)
+        self.s.add_wall(v_start, v_end)
 
     def add_box_walls(self, bottom_left, top_right):
         """
