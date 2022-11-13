@@ -1321,6 +1321,31 @@ class Test_PySim(unittest.TestCase):
 
         # This should be allowed
         s.add_disc(pos, v, m, R, I=m*R**2 / 4)
+    
+    def test_reject_add_disc_after_sim_started(self):
+        """Tests discs can't be added after advance() is called
+        """
+
+        L = 10.0  # Width/height of simulation box
+
+        bottom_left = [0.0, 0.0]
+        top_right = [L, L]
+
+        # Disc properties
+        pos = np.array([L/2, L/2])
+        v = [0.0, 0.0]
+        m = 2.0
+        R = 1.0
+
+        s = bl.PySim(bottom_left, top_right, 1, 1)
+
+        s.add_disc(pos, v, m, R)
+
+        s.advance(5, 100.0, True)
+
+        with self.assertRaises(RuntimeError) as _:
+            s.add_disc(pos+3.0, v, m, R)
+
         
     def test_reject_invalid_bounds(self):
         """

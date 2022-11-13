@@ -58,6 +58,9 @@ public:
 
 	double current_time{ 0.0 };
 
+	// gives whether advance() has been called or not
+	bool sim_has_started{ false };
+
 	// N and M are the number of sectors the simulation should be split up into in the 
 	// horizontal and vertical directions respectively
 	Sim(Vec2D bottom_left, Vec2D top_right, size_t N=1, size_t M=1);
