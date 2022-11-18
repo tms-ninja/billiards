@@ -304,6 +304,9 @@ double Sim::get_e_t() const
 
 void Sim::set_e_t(double new_e_t)
 {
+	if (sim_has_started)
+		throw std::runtime_error("Unable to modify e_t after advance() has been called");
+
 	if (new_e_t > 1.0 || new_e_t < -1.0)
 		throw std::invalid_argument("Coefficient of tangential restitution must be -1.0 <= e_t <= 1.0");
 

@@ -1125,12 +1125,15 @@ cdef class PySim():
         """
         Gets or sets the coefficient of tangential restitution. Should be 
         between -1.0 and 1.0 inclusive. -1.0 corresponds to perfectly smooth
-        discs, +1.0 to perfectly rough discs.
+        discs, +1.0 to perfectly rough discs. It should not be changed after 
+        advance() is called.
 
         Raises
         ------
         ValueError
             Raised if one attempts to set e_t > 1.0 or e_t < -1.0
+        RuntimeError
+            Raised if one attempts to set e_t after advance() is called
         
         """
 
