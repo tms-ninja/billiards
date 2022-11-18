@@ -1371,6 +1371,30 @@ class Test_PySim(unittest.TestCase):
         with self.assertRaises(RuntimeError) as _:
             s.add_wall([0.0, L], [L, 0.0])
 
+    def test_reject_cahnge_g_after_sim_started(self):
+        """Tests PySim.g can't be modified after advance() is called
+        """
+
+        L = 10.0  # Width/height of simulation box
+
+        bottom_left = [0.0, 0.0]
+        top_right = [L, L]
+
+        # Disc properties
+        pos = np.array([L/2, L/2])
+        v = [0.0, 0.0]
+        m = 2.0
+        R = 1.0
+
+        s = bl.PySim(bottom_left, top_right, 1, 1)
+
+        s.add_disc(pos, v, m, R)
+
+        s.advance(5, 100.0, True)
+
+        with self.assertRaises(RuntimeError) as _:
+            s.g = np.array([1.0, 0.0])
+
         
     def test_reject_invalid_bounds(self):
         """

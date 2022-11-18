@@ -314,6 +314,9 @@ Vec2D Sim::get_g() const
 
 void Sim::set_g(const Vec2D& new_g)
 {
+	if (sim_has_started)
+		throw std::runtime_error("Unable to modify Sim::g after advance() has been called");
+
 	g = new_g;
 }
 

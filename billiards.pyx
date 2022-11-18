@@ -1142,6 +1142,12 @@ cdef class PySim():
         Gets or sets the acceleration due to gravity each disc in the 
         simulation experiences. Note it should not be altered after advance()
         is called for the first time.
+
+        Raises
+        ------
+        RuntimeError
+            Raised if one attempts to set e_n after advance() is called
+            
         """
 
         cdef Vec2D g_vec = self.s.get_g()
