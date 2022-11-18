@@ -499,8 +499,10 @@ std::pair<size_t, double> Sim::get_next_wall_coll(size_t disc_ind) const
 
 	for (size_t wall_ind = 0; wall_ind < walls.size(); ++wall_ind)
 	{
-
-		if (((walls.size() == 4 && check_wall[wall_ind]) || walls.size() > 4))
+		// First 4 walls correspond to simulation borders, we can avoid checking these if
+		// disc is not in a sector adjacent to such a wall
+		// All other walls have been added by the user, we must always check these walls
+		if (((wall_ind < walls.size() && check_wall[wall_ind]) || wall_ind >= 4))
 		{
 			current_wall_t = test_disc_wall_col(initial_state[disc_ind], old_event, walls[wall_ind]);
 
