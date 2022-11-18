@@ -288,6 +288,9 @@ double Sim::get_e_n() const
 
 void Sim::set_e_n(double new_e_n)
 {
+	if (sim_has_started)
+		throw std::runtime_error("Unable to modify e_n after advance() has been called");
+
 	if (new_e_n > 1.0 || new_e_n < 0.0)
 		throw std::invalid_argument("Coefficient of normal restitution must be 0.0 <= e_n <= 1.0");
 

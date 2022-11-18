@@ -1103,12 +1103,15 @@ cdef class PySim():
     def e_n(self):
         """
         Gets or sets the coefficient of normal restitution. Should be between
-        0.0 and 1.0 inclusive.
+        0.0 and 1.0 inclusive. It should not be changed after advance() is 
+        called.
 
         Raises
         ------
         ValueError
             Raised if one attempts to set e_n > 1.0 or e_n < 0.0
+        RuntimeError
+            Raised if one attempts to set e_n after advance() is called
         
         """
 
