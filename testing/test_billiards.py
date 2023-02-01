@@ -53,6 +53,29 @@ def create_20_disc_sim(n_sector_x, n_sector_y, e_t, g):
 
     return {'box': [box_bottom_left, box_top_right], 's': s}
 
+def create_simple_simulation(run_sim):
+    """
+    Creates a simulation of one disc bouncing between the left & right walls.
+    Useful as events are predictable
+    """
+
+    box_bottom_left = [ 0.0,  0.0]
+    box_top_right = [12.0, 12.0]
+
+    s = bl.PySim(box_bottom_left, box_top_right, 1, 1)
+
+    s.add_disc([6.0, 6.0], [1.0, 0.0], 1.0, 1.0)
+
+    # Expect 10 collisions, starting at 5 s, every 10 s thereafter
+    if run_sim:
+        s.advance(10, 200.0, True)
+
+    return s
+
+def simple_simulation_times():
+    """List of times of events in create_simple_simulation() if run_sim=True"""
+    return [5.0 + i*10.0 for i in range(10)]
+
 def test_overlapping(s):
     """
     Runs through a simulation s and tests if any discs overlap
@@ -73,6 +96,307 @@ def test_overlapping(s):
 
             np.testing.assert_array_equal(R[i] + R[i+1:] <= dist, True)
 
+class Test_PyEventsLog(unittest.TestCase):
+    """Tests behaviour of PyEventsLog"""
+
+    def test_PyEventsLog_length_empty(self):
+        """
+        Tests log with no events has zero length
+        """
+
+        expected_length = 0
+
+        # Expect no events
+        s = create_simple_simulation(run_sim=False)
+
+        self.assertEqual(len(s.events), expected_length)
+
+    def test_PyEventsLog_length_non_empty(self):
+        """
+        Tests log with events has expected length
+        """
+
+        expected_length = 10
+
+        # Expect 10 events
+        s = create_simple_simulation(run_sim=True)
+
+        self.assertEqual(len(s.events), expected_length)
+
+    def test_PyEventsLog_iteration_empty(self):
+        """
+        Tests log iterates over events in correct order when there are no 
+        events
+        """
+
+        expected_length = 0
+
+        # Expect no events
+        s = create_simple_simulation(run_sim=False)
+
+        events_list = []
+
+        for e in s.events:
+            events_list.append(e)
+
+        self.assertEqual(len(events_list), expected_length)
+
+    def test_PyEventsLog_iteration_non_empty(self):
+        """Tests log iterates over events in correct order"""
+
+        expected_length = 10
+        expected_event_times = [5.0 + 10.0*ind for ind in range(10)]
+
+        # Expect 10 events, starting at 5 s, then every 10 s
+        s = create_simple_simulation(run_sim=True)
+        events_list = []
+
+        for ind, e in enumerate(s.events):
+            # Check event time as simple way to check order
+            self.assertAlmostEqual(e.t, expected_event_times[ind])
+
+            events_list.append(e)
+
+        self.assertEqual(len(events_list), expected_length)
+    
+    # Tests for integer indexing
+
+    def test_PyEventsLog_empty_indexing(self):
+        """Tests an empty log rejects indexes"""
+
+        test_indices = [-1, 0, 1]
+
+        s = create_simple_simulation(run_sim=False)
+
+        for ind in test_indices:
+            with self.assertRaises(IndexError):
+                s.events[ind]
+
+    def test_PyEventsLog_positive_indexing(self):
+        """Tests log rejects indexes correctly for valid positive indices"""
+
+        # Use time of events to validate
+        # 10 events starting at 5 s, then every 10 s
+        expected_length = 10
+        expected_times = {i: t for i, t in zip(range(expected_length), simple_simulation_times())}
+
+        s = create_simple_simulation(run_sim=True)
+
+        for ind, t in expected_times.items():
+            self.assertAlmostEqual(s.events[ind].t, t)
+
+    def test_PyEventsLog_positive_indexing_out_of_range(self):
+        """Tests log rejects positive indexes that are out of range"""
+
+        bad_indices = [10, 1000]  # Expect 10 events, these should be invalid
+
+        s = create_simple_simulation(run_sim=True)
+
+        for ind in bad_indices:
+            with self.assertRaises(IndexError):
+                s.events[ind]
+
+    def test_PyEventsLog_negative_indexing(self):
+        """Tests log handles indexes correctly for valid negative indices"""
+
+        # Use time of events to validate
+        # 10 events starting at 5 s, then every 10 s
+        expected_length = 10
+        expected_times = {i: t for i, t in zip(range(-expected_length, 0), simple_simulation_times())}
+
+        s = create_simple_simulation(run_sim=True)
+
+        for ind, t in expected_times.items():
+            self.assertAlmostEqual(s.events[ind].t, t)
+
+    def test_PyEventsLog_negative_indexing_out_of_range(self):
+        """Tests log rejects negative indexes that are out of range"""
+
+        bad_indices = [-11, -1000]
+
+        s = create_simple_simulation(run_sim=True)
+
+        # 10 events starting at 5 s, then every 10 s
+        for ind in bad_indices: 
+            with self.assertRaises(IndexError):
+                s.events[ind]
+
+    # Tests for slicing
+
+    def test_PyEventsLog_slicing_no_start(self):
+        """Tests PyEventsLog slicing when no start is provided"""
+
+        # 10 events starting at 5 s, then every 10 s
+        stop_ind = 5
+        expected_length = 5
+        expected_times = simple_simulation_times()[:stop_ind]
+
+        s = create_simple_simulation(run_sim=True)
+        events_slice = s.events[:stop_ind]
+
+        # Verify
+        self.assertEqual(len(events_slice), expected_length)
+
+        for ind, e in enumerate(events_slice):
+            self.assertAlmostEqual(e.t, expected_times[ind])
+
+    def test_PyEventsLog_slicing_positive_start(self):
+        """Tests PyEventsLog slicing when start is positive"""
+
+        start_ind = 2
+        expected_length = 8
+        expected_times = simple_simulation_times()[start_ind:]
+
+        # 10 events starting at 5 s, then every 10 s
+        s = create_simple_simulation(run_sim=True)
+        events_slice = s.events[start_ind:]
+
+        # Verify
+        self.assertEqual(len(events_slice), expected_length)
+
+        for ind, e in enumerate(events_slice):
+            self.assertAlmostEqual(e.t, expected_times[ind])
+
+    def test_PyEventsLog_slicing_negative_start(self):
+        """Tests PyEventsLog slicing when start is negative"""
+
+        # 10 events starting at 5 s, then every 10 s
+        start_ind = -8
+        expected_length = 8  # length the slice should have
+        true_length = 10  # length of the underlying data
+        expected_times = simple_simulation_times()[start_ind:]
+
+        s = create_simple_simulation(run_sim=True)
+        events_slice = s.events[start_ind:]
+
+        # verify
+        self.assertEqual(len(events_slice), expected_length)
+
+        for ind, e in enumerate(events_slice):
+            self.assertAlmostEqual(e.t, expected_times[ind])
+
+    def test_PyEventsLog_slicing_no_stop(self):
+        """Tests PyEventsLog slicing when no stop is provided"""
+
+        # 10 events starting at 5 s, then every 10 s
+        start_ind = 5
+        expected_length = 5
+        expected_times = simple_simulation_times()[start_ind:]
+
+        # Create events
+        s = create_simple_simulation(run_sim=True)
+        events_slice = s.events[start_ind:]
+
+        # Test
+        self.assertEqual(len(events_slice), expected_length)
+
+        for ind, e in enumerate(events_slice):
+            self.assertAlmostEqual(e.t, expected_times[ind])
+
+    def test_PyEventsLog_slicing_positive_stop(self):
+        """Tests PyEventsLog slicing when stop is positive"""
+
+        # 10 events starting at 5 s, then every 10 s
+        stop_ind = 8
+        expected_length = 8
+        expected_times = simple_simulation_times()[:stop_ind]
+
+        s = create_simple_simulation(run_sim=True)
+        events_slice = s.events[:stop_ind]
+
+        # test
+        self.assertEqual(len(events_slice), expected_length)
+
+        for ind, e in enumerate(events_slice):
+            self.assertAlmostEqual(e.t, expected_times[ind])
+
+    def test_PyEventsLog_slicing_negative_stop(self):
+        """Tests PyEventsLog slicing when stop is negative"""
+
+        # 10 events starting at 5 s, then every 10 s
+        stop_ind = -2
+        expected_length = 8
+        expected_times = simple_simulation_times()[:stop_ind]
+
+        s = create_simple_simulation(run_sim=True)
+        events_slice = s.events[:stop_ind]
+
+        self.assertEqual(len(events_slice), expected_length)
+
+        for ind, e in enumerate(events_slice):
+            self.assertAlmostEqual(e.t, expected_times[ind])
+
+    def test_PyEventsLog_slicing_stop_is_forgiving(self):
+        """Tests PyEventsLog slicing is forgiving for stop index if it's outside range"""
+
+        # 10 events starting at 5 s, then every 10 s
+        start_ind = 6
+        stop_ind = 11
+        expected_length = 4
+        expected_times = simple_simulation_times()[start_ind:stop_ind]
+
+        s = create_simple_simulation(run_sim=True)
+        events_slice = s.events[start_ind:stop_ind]
+
+        # test
+        self.assertEqual(len(events_slice), expected_length)
+
+        for ind, e in enumerate(events_slice):
+            self.assertAlmostEqual(e.t, expected_times[ind])
+
+    def test_PyEventsLog_slicing_stop_less_than_start(self):
+        """Tests PyEventsLog slicing when stop less than start and it should be empty"""
+
+        # 10 events starting at 5 s, then every 10 s
+        start_ind = 5
+        stop_ind = 3
+        expected_length = 0
+        expected_times = simple_simulation_times()[start_ind:stop_ind]
+
+        s = create_simple_simulation(run_sim=True)
+        events_slice = s.events[start_ind:stop_ind]
+
+        # test
+        self.assertEqual(len(events_slice), expected_length)
+
+        for ind, e in enumerate(events_slice):
+            self.assertAlmostEqual(e.t, expected_times[ind])
+
+    def test_PyEventsLog_slicing_stop_equals_start(self):
+        """Tests PyEventsLog slicing when stop equals start should be empty"""
+
+        # 10 events starting at 5 s, then every 10 s
+        start_ind = 5
+        stop_ind = 5
+        expected_length = 0
+        expected_times = simple_simulation_times()[start_ind:stop_ind]
+
+        s = create_simple_simulation(run_sim=True)
+        events_slice = s.events[start_ind:stop_ind]
+
+        # test
+        self.assertEqual(len(events_slice), expected_length)
+
+        for ind, e in enumerate(events_slice):
+            self.assertAlmostEqual(e.t, expected_times[ind])
+
+    def test_PyEventsLog_slicing_start_is_forgiving(self):
+        """Tests PyEventsLog slicing is forgiving for start index if it's outside range"""
+
+        # 10 events starting at 5 s, then every 10 s
+        start_ind = -11
+        stop_ind = 5
+        expected_length = 5
+        expected_times = simple_simulation_times()[start_ind:stop_ind]
+
+        s = create_simple_simulation(run_sim=True)
+        events_slice = s.events[start_ind:stop_ind]
+
+        # test
+        self.assertEqual(len(events_slice), expected_length)
+
+        for ind, e in enumerate(events_slice):
+            self.assertAlmostEqual(e.t, expected_times[ind])
 
 class Test_PySim(unittest.TestCase):
     
@@ -153,7 +477,7 @@ class Test_PySim(unittest.TestCase):
         s.advance(2, 10.0, True)
 
         # Check expected event properties
-        events = s.events
+        events = list(s.events)
 
         if events[0].ind == 1:
             events[0], events[1] = events[1], events[0]
@@ -195,7 +519,7 @@ class Test_PySim(unittest.TestCase):
         s.advance(2, 10.0, True)
 
         # Check expected event properties
-        events = s.events
+        events = list(s.events)
 
         if events[0].ind == 1:
             events[0], events[1] = events[1], events[0]
@@ -240,7 +564,7 @@ class Test_PySim(unittest.TestCase):
         s.advance(2, 10.0, True)
 
         # Check expected event properties
-        events = s.events
+        events = list(s.events)
 
         if events[0].ind == 1:
             events[0], events[1] = events[1], events[0]
@@ -285,7 +609,7 @@ class Test_PySim(unittest.TestCase):
         s.advance(2, 10.0, True)
 
         # Check expected event properties
-        events = s.events
+        events = list(s.events)
 
         if events[0].ind == 1:
             events[0], events[1] = events[1], events[0]
@@ -330,7 +654,7 @@ class Test_PySim(unittest.TestCase):
         s.advance(2, 10.0, True)
 
         # Check expected event properties
-        events = s.events
+        events = list(s.events)
 
         if events[0].ind == 1:
             events[0], events[1] = events[1], events[0]
@@ -375,7 +699,7 @@ class Test_PySim(unittest.TestCase):
         s.advance(2, 10.0, True)
 
         # Check expected event properties
-        events = s.events
+        events = list(s.events)
 
         if events[0].ind == 1:
             events[0], events[1] = events[1], events[0]
@@ -521,7 +845,7 @@ class Test_PySim(unittest.TestCase):
         s.advance(2, 10.0, True)
 
         # Check expected event properties
-        events = s.events
+        events = list(s.events)
 
         if events[0].ind == 1:
             events[0], events[1] = events[1], events[0]
@@ -568,7 +892,7 @@ class Test_PySim(unittest.TestCase):
         s.advance(2, 10.0, True)
 
         # Check expected event properties
-        events = s.events
+        events = list(s.events)
 
         if events[0].ind == 1:
             events[0], events[1] = events[1], events[0]
@@ -618,7 +942,7 @@ class Test_PySim(unittest.TestCase):
         s.advance(2, 10.0, True)
 
         # Check expected event properties
-        events = s.events
+        events = list(s.events)
 
         if events[0].ind == 1:
             events[0], events[1] = events[1], events[0]
@@ -668,7 +992,7 @@ class Test_PySim(unittest.TestCase):
         s.advance(2, 10.0, True)
 
         # Check expected event properties
-        events = s.events
+        events = list(s.events)
 
         if events[0].ind == 1:
             events[0], events[1] = events[1], events[0]
@@ -718,7 +1042,7 @@ class Test_PySim(unittest.TestCase):
         s.advance(2, 10.0, True)
 
         # Check expected event properties
-        events = s.events
+        events = list(s.events)
 
         if events[0].ind == 1:
             events[0], events[1] = events[1], events[0]
@@ -768,7 +1092,7 @@ class Test_PySim(unittest.TestCase):
         s.advance(2, 10.0, True)
 
         # Check expected event properties
-        events = s.events
+        events = list(s.events)
 
         if events[0].ind == 1:
             events[0], events[1] = events[1], events[0]
@@ -818,7 +1142,7 @@ class Test_PySim(unittest.TestCase):
         s.advance(2, 10.0, True)
 
         # Check expected event properties
-        events = s.events
+        events = list(s.events)
 
         if events[0].ind == 1:
             events[0], events[1] = events[1], events[0]
@@ -868,7 +1192,7 @@ class Test_PySim(unittest.TestCase):
         s.advance(2, 10.0, True)
 
         # Check expected event properties
-        events = s.events
+        events = list(s.events)
 
         if events[0].ind == 1:
             events[0], events[1] = events[1], events[0]
@@ -988,7 +1312,7 @@ class Test_PySim(unittest.TestCase):
         s.advance(2, 10.0, True)
 
         # Check expected event properties
-        events = s.events
+        events = list(s.events)
 
         if events[0].ind == 1:
             events[0], events[1] = events[1], events[0]
