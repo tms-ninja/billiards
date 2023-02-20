@@ -270,6 +270,14 @@ cdef class PyEvent():
     cdef PySim _sim
     cdef size_t _e_ind
 
+    def __init__(self, PySim s not None, size_t ind):
+
+        if ind >= s.s.events.size():
+            raise ValueError(f"Index {ind} was too large for simulation vector")
+
+        self._sim = s
+        self._e_ind = ind  # index of event in C++ events vector
+
     def __repr__(self):
         """String representation of PyEvent"""
 
@@ -277,35 +285,6 @@ cdef class PyEvent():
         rep += f"r={self.r}, v={self.v}, w={self.w})"
         
         return rep
-    
-    @staticmethod
-    cdef from_PySim(PySim s, size_t ind):
-        """
-        Creates a PyEvent instance from the Event at index ind in the given
-        simulation
-
-        Parameters
-        ----------
-        s : PySim
-            The simulation that contains the list of events this event wil be 
-            created from.
-        ind : int
-            The index in the events vector which this instance of PyEvent will
-            wrap.
-        
-        Returns
-        -------
-        PyEvent
-            The PyEvent instance that wraps the event at ind.
-
-        """
-
-        cdef PyEvent e = PyEvent()
-
-        e._sim = s
-        e._e_ind = ind  # index of event in C++ events vector
-
-        return e
 
     # Properties
     @property
@@ -455,6 +434,222 @@ cdef class PyEvent():
 
         return self._sim.s.events[self._e_ind].w
 
+# class PyEventsLog
+
+cdef class PyEventsLog:
+    """
+    Sequence container that exposes events recorded in a PySim simulation. By 
+    default, it will dynamically "expand" to expose all events as new events 
+    are processed. It supports indexing (including negative indexing), slicing 
+    (only a step size of 1 currently supported) and iteration. The number of 
+    events can be found using len().
+    """
+
+    # We hold onto the PySim instance and use an index to avoid memory
+    # management issues that may arise when using a pointer
+    cdef PySim _sim
+    cdef size_t _start
+    cdef size_t _stop
+    cdef bint is_slice
+
+    def __init__(self, PySim s not None, start=None, stop=None):
+        """
+        Creates an events log for a given PySim. By default, it will 
+        dynamically "expand" to expose all events as new events are processed.
+        If start & stop are both int, it will act as a fixed length slice. If s
+        has N events that can be exposed, then start & stop may be:
+
+        0 <= start, stop <= N
+        
+        Parameters
+        ----------
+        s : PySim
+            The simulation whose events are to be exposed
+        start : int or None, optional
+            The start index of a slice if a slice of all events is desired. If 
+            None, the PyEventsLog instance will expose all available events & 
+            stop should also be None. If int, stop should also be int. The 
+            default is None.
+        stop : int or None, optional
+            The stop index of a slice if a slice of all events is desired. If 
+            None, the PyEventsLog instance will expose all available events & 
+            start should also be None. If int, start should also be int. The 
+            default is None.
+
+        Raises
+        ------
+        ValueError
+            Raised if either start or stop are invalid.
+
+        Returns
+        -------
+        None.
+
+        """
+
+        self._sim = s
+        
+        if start is None and stop is None:
+            self.is_slice = False
+        elif start is not None and stop is not None:
+            self.is_slice = True
+        else:
+            raise ValueError("start and stop must either both be None or int")
+        cdef size_t events_vec_size = self._sim.s.events.size()
+
+        if self.is_slice:
+            if events_vec_size <= start and start != 0:
+                raise ValueError("Start index was outside bounds of events vector")
+            else:
+                self._start = start
+
+            if events_vec_size < stop and stop != 0:
+                raise ValueError("Stop index was outside bounds of events vector")
+            else:
+                self._stop = stop
+        else:
+            self._start = 0
+            self._stop = 0
+
+    def __len__(self):
+        """
+        The number of events in the PyEventsLog.
+        
+        Parameters
+        ----------
+        None.
+
+        Returns
+        -------
+        int
+            The number of events in the PyEventsLog.
+
+        """
+
+        if self.is_slice:
+            if self._stop <= self._start:
+                return 0
+            else:
+                return self._stop - self._start
+        else:
+
+            return self._sim.s.events.size()
+
+    def __getitem__(self, key):
+        """
+        Creates an events log for a given PySim. By default, it will 
+        dynamically "expand" to expose all events as new events are processed.
+        If start & stop are both int, it will act as a fixed length slice. 
+        It roughly has similar behaviour to indexing/slicing behaviour of 
+        Python lists with the exception that only step sizes of 1 are allowed.
+
+        Parameters
+        ----------
+        key : int or slice
+            If key is int, then it returns the event at index key. Negative 
+            indices are supported.
+            
+            For a slice a new PyEventsLog instance is returned representing
+            all events from the given start index up to, but not including,
+            the stop index. Negative indices are supported. Note like Python 
+            lists it is forgiving with respect to indices that are out of 
+            range. Step sizes other than 1 are not currently supported. 
+
+        Raises
+        ------
+        IndexError
+            Raised if key is out of range.
+
+        Returns
+        -------
+        PyEvent or PyEventsLog
+            PyEvent if key is int, else PyEventsLog representing the desired 
+            slice.
+
+        """
+
+        if type(key) is int:
+            _key = key
+
+            if _key < 0:
+                _key = len(self) + _key
+
+            if 0 <= _key and _key < len(self):
+                return PyEvent(self._sim, self._start + _key)
+            else:
+                raise IndexError(f"Index {key} was out of range")
+
+        elif type(key) is slice:
+            if key.step is not None and key.step != 1:
+                raise NotImplementedError("Slicing with step!=1 not currently supported for PyEventsLog")
+
+            if key.start is None:
+                _start = 0
+            elif key.start < 0:
+                _start = len(self) + key.start
+
+                if _start < 0:
+                    _start = 0
+            elif key.start >= len(self):
+                _start = len(self)
+            else:
+                _start = key.start
+
+            if key.stop is None:
+                _stop = len(self)
+            elif key.stop < 0:
+                _stop = len(self) + key.stop
+
+                if _stop < 0:
+                    _stop = 0
+            elif key.stop >= len(self):
+                _stop = len(self)
+            else:
+                _stop = key.stop
+
+            # Up to this point, _start and _stop are relative to this 
+            # particular slice's start and stop. Now make them absolute
+            # relative to the C++ vector that stores events
+            _start = self._start + _start
+            _stop = self._start + _stop
+
+            return PyEventsLog(self._sim, _start, _stop)
+            
+        else:
+            raise TypeError(f"{key} is not a valid key, expected int or slice")
+        
+    def __iter__(self):
+        """
+        A generator that yields each event in the PyEventsLog. If the 
+        PyEventsLog instance is a slice of another PyEventsLog, the generator 
+        will yield a fixed number of events. Otherwise it will continue 
+        yielding events until none remain. That is, if new events are recorded
+        during iteration, they will be yielded.
+        
+        Parameters
+        ----------
+        None.
+
+        Returns
+        -------
+        Generator[PyEvent, None, None]
+            A generator that yields each event in sequence.
+
+        """
+
+        if self.is_slice:
+            return (PyEvent(self._sim, ind) for ind in range(self._start, self._stop))
+        else:
+            def gen_events(events_log, sim):
+                ind = 0
+
+                while ind < len(events_log):
+                    yield PyEvent(sim, ind)
+
+                    ind += 1
+
+            return gen_events(self, self._sim)
+
 # class PySim
 
 cdef class PySim():
@@ -463,7 +658,7 @@ cdef class PySim():
     """
 
     cdef Sim* s
-    cdef list _events
+    cdef PyEventsLog _events
 
     def __init__(self, bottom_left, top_right, size_t N=1, size_t M=1):
         """
@@ -516,7 +711,7 @@ cdef class PySim():
         self.s = new Sim(v_bottom_left, v_top_right, N, M)
 
 
-        self._events = []
+        self._events = PyEventsLog(self)
 
     def __dealloc__(self):
         """
@@ -560,10 +755,6 @@ cdef class PySim():
         """
 
         self.s.advance(max_iterations, max_t, record_events)
-
-        # Need to add new events to the events list
-        for ind in range(len(self._events), self.s.events.size()):
-            self._events.append(PyEvent.from_PySim(self, ind))
 
     def add_wall(self, start, end):
         """
