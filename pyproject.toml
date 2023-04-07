@@ -17,14 +17,27 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import numpy as np
-from setuptools import setup
-from Cython.Build import cythonize
+[build-system]
+requires = ["setuptools", "wheel", "cython", "numpy"]
+build-backend = "setuptools.build_meta"
 
-setup(ext_modules=cythonize("billiards/billiards.pyx", 
-                            compiler_directives={'language_level': 3}),
-      include_dirs=[np.get_include(), "billiards/cpp/billiards"],
-      zip_safe=False,
-      packages=["billiards"]
-)
+[project]
+name = "billiards"
+version = "0.1"
+authors = [
+    {name = "Tom Spencer", email = "tspencerprog@gmail.com"},
+]
+description = "A Python package for modelling collisions betwee 2d discs"
+readme = "README.md"
+license = {text = "GPLv3 or later"}
+requires-python = ">=3"
+dependencies = ["numpy", "scipy"]
+classifiers  =  [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: OS Independent",
+]
 
+[project.urls]
+homepage = "https://github.com/tms-ninja/billiards"
+repository = "https://github.com/tms-ninja/billiards"
