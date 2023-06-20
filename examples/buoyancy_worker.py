@@ -26,6 +26,7 @@ class SimProperties:
     """Data class to describe simulation properties"""
     bottom_left: np.ndarray
     top_right: np.ndarray
+    g: np.ndarray
     initial_state: np.ndarray
     current_state: np.ndarray
     current_time: float
@@ -34,9 +35,11 @@ class SimProperties:
         """Corrects current state postion so all particles position are at the same time"""
         cur_state = self.current_state.copy()
         cur_t = cur_state['t']
-        cur_pos = cur_state['r']
+        cur_r = cur_state['r']
         cur_v = cur_state['v']
-        cur_pos += cur_v*(self.current_time - cur_t)[:, np.newaxis]
+
+        dt = (self.current_time - cur_t)[:, np.newaxis]
+        cur_state['r_cor'] = cur_r + cur_v*dt + self.g*(dt*dt/2.0)
     
         return cur_state
 
@@ -103,6 +106,7 @@ def test_buoyancy(rho_central):
     sim_prop = SimProperties(
         bottom_left=bottom_left,
         top_right=top_right,
+        g=sim.g,
         initial_state=sim.initial_state,
         current_state=sim.current_state,
         current_time=sim.current_time
