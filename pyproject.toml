@@ -23,7 +23,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "billiards"
-version = "0.1"
+version = "0.1.1"
 authors = [
     {name = "Tom Spencer", email = "tspencerprog@gmail.com"},
 ]

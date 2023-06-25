@@ -948,7 +948,12 @@ cdef class PySim():
 
             scale = np.sqrt(kB_T / unique_masses[0])
 
-            speeds = scipy.stats.chi.rvs(2, loc=0, scale=scale, size=N_discs)
+            # Generate a random number generator
+            # Ensures if we run multiple simulations in parallel using Python's
+            # multiprocessing module, they will each have different random states
+            random_gen = np.random.default_rng()
+
+            speeds = scipy.stats.chi.rvs(2, loc=0, scale=scale, size=N_discs, random_state=random_gen)
 
             velocity[N_current_state:, 0] = speeds*np.cos(angle)
             velocity[N_current_state:, 1] = speeds*np.sin(angle)
@@ -1024,7 +1029,10 @@ cdef class PySim():
         # to NumPy. Should probably find a better way fo doing this
         cdef int N_random = 1_000
         cdef int next_random_ind = 0
-        cdef np.ndarray random_value_array = np.random.random(N_random)
+
+        random_gen = np.random.default_rng()
+
+        cdef np.ndarray random_value_array = random_gen.random(N_random)
         cdef double random_value
 
         for d_ind in range(N_current_state, N_current_state + N_discs):
@@ -1115,9 +1123,11 @@ cdef class PySim():
         attempt = 0
         max_attempt = 10
 
+        random_gen = np.random.default_rng()
+
         while attempt < max_attempt:
             # select the positions for this attempt
-            selected_indices = np.random.choice(possible_positions.shape[0], N_discs, replace=False)
+            selected_indices = random_gen.choice(possible_positions.shape[0], N_discs, replace=False)
             pos[N_current_state:] = possible_positions[selected_indices]
 
             overlapping_discs = False
