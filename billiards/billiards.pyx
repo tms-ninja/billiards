@@ -1218,12 +1218,20 @@ cdef class PySim():
         returns them as a dictionary of numpy arrays. Note that as the 
         simulation advances from one event to another, the current (that is 
         most recent) event of a particular disc does not necessarily occur at 
-        the same time as the current event of another disc. To get the 
-        positions of all discs at the current time (i.e. given by
-        PySim.current_time), this can be manually computed using:
+        the same time as the current event of another disc.
+        
+        For this reason, the 'r_cor' and 'v_cor' keys return the corrected 
+        position and velocity respectively valid at the time of the most recent 
+        event, i.e. at PySim.current_time. These are equivalent to computing,
 
         state_dict['r'] + state_dict['v']*(PySim.current_time-state_dict['t'])
         + 0.5*PySim.g*(PySim.current_time-state_dict['t'])**2
+
+        for state_dict['r_cor'] and,
+
+        state_dict['v'] + PySim.g*(PySim.current_time-state_dict['t'])
+
+        for state_dict['v_cor'].
 
         Parameters
         ----------
@@ -1236,38 +1244,51 @@ cdef class PySim():
             correspond to:
             - 't' - time of the last event
             - 'r' - position
+            - 'r_cor' - corrected position
             - 'v' - velocity
+            - 'v_cor' - corrected velocity
             - 'w' - angular velocity
             - 'm' - mass
             - 'R' - radius
             - 'I' - moment of inertia
         """
 
-        state_dict = {}
-
-        state_dict['t'] = np.empty((self.s.initial_state.size(), ), dtype=np.float64)
-        state_dict['r'] = np.empty((self.s.initial_state.size(), 2), dtype=np.float64)
-        state_dict['v'] = np.empty((self.s.initial_state.size(), 2), dtype=np.float64)
-        state_dict['w'] = np.empty((self.s.initial_state.size(), ), dtype=np.float64)
+        t = np.empty((self.s.initial_state.size(), ), dtype=np.float64)
+        r = np.empty((self.s.initial_state.size(), 2), dtype=np.float64)
+        v = np.empty((self.s.initial_state.size(), 2), dtype=np.float64)
+        w = np.empty((self.s.initial_state.size(), ), dtype=np.float64)
 
         # Assume mass/radii/moment of inertia of discs don't change during simulation
-        state_dict['m'] = _get_state_m(self.s.initial_state)
-        state_dict['R'] = _get_state_R(self.s.initial_state)
-        state_dict['I'] = _get_state_I(self.s.initial_state)
-
         cdef Event cur_disc
-
 
         for d_ind in range(0, self.s.initial_state.size()):
             cur_disc = self.s.events_vec[d_ind][self.s.old_vec[d_ind]]
 
-            state_dict['t'][d_ind] = cur_disc.t
+            t[d_ind] = cur_disc.t
 
             for p_ind in range(0, 2):
-                state_dict['r'][d_ind, p_ind] = cur_disc.r[p_ind]
-                state_dict['v'][d_ind, p_ind] = cur_disc.v[p_ind]
+                r[d_ind, p_ind] = cur_disc.r[p_ind]
+                v[d_ind, p_ind] = cur_disc.v[p_ind]
                 
-            state_dict['w'][d_ind] = cur_disc.w
+            w[d_ind] = cur_disc.w
+
+        # Compute the corrected position & velocity
+        dt = (self.current_time - t)[:, np.newaxis]
+        r_cor = r + v*dt + 0.5*self.g*dt**2
+        v_cor = v + self.g*dt
+
+        state_dict = {}
+
+        state_dict['t'] = t
+        state_dict['r'] = r
+        state_dict['v'] = v
+        state_dict['w'] = w
+        state_dict['r_cor'] = r_cor
+        state_dict['v_cor'] = v_cor
+
+        state_dict['m'] = _get_state_m(self.s.initial_state)
+        state_dict['R'] = _get_state_R(self.s.initial_state)
+        state_dict['I'] = _get_state_I(self.s.initial_state)
 
         return state_dict
 
