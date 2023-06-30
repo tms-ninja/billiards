@@ -31,18 +31,6 @@ class SimProperties:
     current_state: np.ndarray
     current_time: float
 
-    def get_corrected_current_state(self):
-        """Corrects current state postion so all particles position are at the same time"""
-        cur_state = self.current_state.copy()
-        cur_t = cur_state['t']
-        cur_r = cur_state['r']
-        cur_v = cur_state['v']
-
-        dt = (self.current_time - cur_t)[:, np.newaxis]
-        cur_state['r_cor'] = cur_r + cur_v*dt + self.g*(dt*dt/2.0)
-    
-        return cur_state
-
 def test_buoyancy(rho_central):
     """
     Runs a simulation for a central disc with the given density. Neutral 
@@ -119,3 +107,4 @@ def test_buoyancy(rho_central):
     
     # Finally return the answer
     return sim_prop, t, pos
+
